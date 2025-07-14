@@ -1,0 +1,44 @@
+services:
+  # cipo_bot:
+  #   # NO BUILD CONTAINER - RUN LOCAL
+  #   #image: almasnurbayev/go_cipo_bot:latest
+  #   image: golang:1.24.3-alpine3.20
+  #   working_dir: /app
+  #   environment:
+  #     - TZ=Asia/Almaty
+  #     - ENV=${ENV}
+  #     - BOT_TOKEN=${BOT_TOKEN}
+  #     - BOT_TIMEOUT=${BOT_TIMEOUT}
+  #     - POSTGRES_TIMEOUT=${POSTGRES_TIMEOUT}
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - POSTGRES_DB=${POSTGRES_DB}
+  #     - POSTGRES_PORT=${POSTGRES_PORT}
+  #     - POSTGRES_HOST=${POSTGRES_HOST}
+  #     - SECRET_KEY=${SECRET_KEY}
+  #   volumes:
+  #     - .:/app
+  #     - /etc/localtime:/etc/localtime:ro
+  #   command: go run cmd/bot/main.go -configEnv ./.env
+  #   ports:
+  #     - 8443:8443
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - cipo_bot_postgres
+
+  cipo_bot_postgres:
+    image: postgres:17.3-alpine3.21
+    #container_name: cipo_backend_postgres
+    restart: always
+    environment:
+      - TZ='Asia/Qyzylorda'
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+    ports:
+      # - '${HTTP_PORT}:${HTTP_PORT}'
+      - '${POSTGRES_PORT}:5432'
+    volumes:
+      - ./pg_conf:/etc/postgresql/postgresql.conf
+      - ./volume_db/:/var/lib/postgresql/data

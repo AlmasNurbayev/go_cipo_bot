@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS kassa;
+
+DROP INDEX IF EXISTS kassa_idx;

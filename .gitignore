@@ -1,0 +1,5 @@
+.env
+./config/.env
+./config/config.yaml
+/.vscode/
+/volume_db
