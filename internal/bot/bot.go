@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/bot/middleware"
@@ -19,7 +20,11 @@ type BotApp struct {
 
 func NewApp(cfg *config.Config, log *slog.Logger) (*BotApp, error) {
 	dsn := "postgres://" + cfg.POSTGRES_USER + ":" + cfg.POSTGRES_PASSWORD + "@" + cfg.POSTGRES_HOST + ":" + cfg.POSTGRES_PORT + "/" + cfg.POSTGRES_DB + "?sslmode=disable"
-	storage, err := storage.NewStorage(dsn, log, cfg.POSTGRES_TIMEOUT)
+
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
+	defer cancel()
+
+	storage, err := storage.NewStorage(ctx, dsn, log)
 	if err != nil {
 		log.Error("not init postgres storage")
 		panic(err)

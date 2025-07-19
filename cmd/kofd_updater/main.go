@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/kofd_updater/kofd_updater_services"
@@ -40,24 +42,49 @@ func main() {
 	Log.Debug("debug message is enabled")
 
 	fmt.Println(lastDate, firstDate, bin)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
+	defer cancel()
 
 	dsn := "postgres://" + cfg.POSTGRES_USER + ":" + cfg.POSTGRES_PASSWORD + "@" + cfg.POSTGRES_HOST + ":" + cfg.POSTGRES_PORT + "/" + cfg.POSTGRES_DB + "?sslmode=disable"
-	storage, err := storage.NewStorage(dsn, Log, cfg.POSTGRES_TIMEOUT)
+	storage, err := storage.NewStorage(ctx, dsn, Log)
 	if err != nil {
 		Log.Error("not init postgres storage")
 		panic(err)
 	}
 
-	token, err := kofd_updater_services.GetToken(storage, Log, bin, cfg)
+	pgxTransaction, err := storage.Db.Begin(storage.Ctx)
+	if err != nil {
+		Log.Error("Not created transaction:", slog.String("err", err.Error()))
+		os.Exit(1)
+	}
+	storage.Tx = &pgxTransaction
+
+	token, err := kofd_updater_services.GetToken(ctx, storage, Log, bin, cfg)
 	if err != nil {
 		Log.Error("error: ", slog.String("err", err.Error()))
+		err = pgxTransaction.Rollback(ctx)
+		if err != nil {
+			Log.Error("Error rollback all db changes:", slog.String("err", err.Error()))
+		}
+		storage.Close()
 		return
 	}
 
-	_, err = kofd_updater_services.GetOperationsFromApi(storage, cfg, Log, bin, token, firstDate, lastDate)
+	_, err = kofd_updater_services.GetOperationsFromApi(ctx, storage, cfg, Log, bin, token, firstDate, lastDate)
 	if err != nil {
 		Log.Error("error: ", slog.String("err", err.Error()))
+		err = pgxTransaction.Rollback(ctx)
+		if err != nil {
+			Log.Error("Error rollback all db changes:", slog.String("err", err.Error()))
+		}
+		storage.Close()
 		return
+	}
+	err = pgxTransaction.Commit(ctx)
+	if err != nil {
+		Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
+	} else {
+		Log.Info("DB changes committed")
 	}
 
 }

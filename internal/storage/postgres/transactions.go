@@ -13,8 +13,10 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 	op := "storage.InsertTransactions"
 	log := s.log.With(slog.String("op", op))
 
+	db := *s.Tx
+
 	for _, transaction := range transactions {
-		_, err := s.Db.Query(ctx, `
+		_, err := db.Exec(ctx, `
 			INSERT INTO transactions (kassa_id, operationdate, sum_operation, type_operation,
 				shift, subtype, systemdate, availablesum, offlinefiscalnumber,
 				onlinefiscalnumber, paymenttypes, organization_id, ofd_id,

@@ -16,14 +16,14 @@ type storageOperations interface {
 	InsertTransactions(context.Context, []models.TransactionEntity) error
 }
 
-func GetOperationsFromApi(storage storageOperations, cfg *config.Config, log *slog.Logger,
+func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *config.Config, log *slog.Logger,
 	BIN string, token string, firstDate string, lastDate string) (int, error) {
 
 	op := "kofd_updater.services.GetOperationsService"
 	log = log.With(slog.String("op", op))
 
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
+	// defer cancel()
 
 	//var transactions []models.TransactionEntity
 	requestKassaList, err := storage.ListKassa(ctx)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,16 +17,16 @@ type Storage struct {
 	Tx  *pgx.Tx
 }
 
-func NewStorage(DSN string, log *slog.Logger, timeout time.Duration) (*Storage, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+func NewStorage(ctx context.Context, DSN string, log *slog.Logger) (*Storage, error) {
+	// ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	// defer cancel()
 	const op = "postgres.NewStorage"
 	var shortDSN = ""
 	if idx := strings.Index(DSN, "@"); idx != -1 {
 		shortDSN = DSN[idx+1:]
 	}
 
-	log.With(slog.String("op", op)).Info("init storage " + shortDSN + " with timeout " + timeout.String())
+	log.With(slog.String("op", op)).Info("init storage " + shortDSN)
 
 	newConfig, err := pgxpool.ParseConfig(DSN)
 	if err != nil {

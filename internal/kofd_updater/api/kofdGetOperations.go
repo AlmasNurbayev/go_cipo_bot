@@ -49,7 +49,7 @@ func KofdGetOperations(cfg *config.Config,
 	}
 	query := url.Values{}
 	query.Add("cashboxId", knumber)
-	query.Add("toDate", lastDate)
+	query.Add("toDate", lastDate+"T23:59:59")
 	query.Add("fromDate", firstDate)
 	base.RawQuery = query.Encode()
 
