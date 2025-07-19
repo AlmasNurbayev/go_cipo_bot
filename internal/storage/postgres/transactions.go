@@ -15,8 +15,9 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 
 	db := *s.Tx
 
+	count := 0
 	for _, transaction := range transactions {
-		_, err := db.Exec(ctx, `
+		cmdTag, err := db.Exec(ctx, `
 			INSERT INTO transactions (kassa_id, operationdate, sum_operation, type_operation,
 				shift, subtype, systemdate, availablesum, offlinefiscalnumber,
 				onlinefiscalnumber, paymenttypes, organization_id, ofd_id,
@@ -32,11 +33,15 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 			transaction.Organization_id,
 			transaction.Ofd_id, transaction.Ofd_name, transaction.Knumber,
 			transaction.Cheque, transaction.Images, transaction.Names)
+
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			return err
 		}
+		count = count + int(cmdTag.RowsAffected())
+
 	}
+	log.Info("Inserted rows", slog.Int("rowsInserted", int(count)))
 
 	return nil
 }

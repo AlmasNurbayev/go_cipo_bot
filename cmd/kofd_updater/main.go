@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/kofd_updater/kofd_updater_services"
@@ -15,7 +14,6 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello, KOFD Updater!")
 	fmt.Println("reading config...")
 	var (
 		configEnv string
@@ -31,7 +29,7 @@ func main() {
 
 	cfg := config.Mustload(configEnv)
 	Log := logger.InitLogger(cfg.ENV)
-	Log.Info("============ start bot ============")
+	Log.Info("=== start kofd_updater ===")
 
 	Log.Info("load config: ")
 	cfgBytes, err := utils.PrintAsJSON(cfg)
@@ -41,7 +39,7 @@ func main() {
 	fmt.Println(string(*cfgBytes))
 	Log.Debug("debug message is enabled")
 
-	fmt.Println(lastDate, firstDate, bin)
+	//fmt.Println(lastDate, firstDate, bin)
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
 	defer cancel()
 
@@ -55,7 +53,8 @@ func main() {
 	pgxTransaction, err := storage.Db.Begin(storage.Ctx)
 	if err != nil {
 		Log.Error("Not created transaction:", slog.String("err", err.Error()))
-		os.Exit(1)
+		storage.Close()
+		return
 	}
 	storage.Tx = &pgxTransaction
 
