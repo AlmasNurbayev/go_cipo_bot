@@ -39,6 +39,7 @@ services:
     ports:
       # - '${HTTP_PORT}:${HTTP_PORT}'
       - '${POSTGRES_PORT}:5432'
+    command: ['postgres', '-c', 'config_file=/etc/postgresql/postgresql.conf']
     volumes:
-      - ./pg_conf:/etc/postgresql/postgresql.conf
+      - ./pg_conf/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./volume_db/:/var/lib/postgresql/data

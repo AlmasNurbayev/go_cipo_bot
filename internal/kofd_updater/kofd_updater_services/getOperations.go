@@ -61,7 +61,7 @@ func GetOperationsFromApi(storage storageOperations, cfg *config.Config, log *sl
 				Knumber:             kassa.Knumber,
 			})
 		}
-
+		log.Info("get transactions from api", slog.Int("count", len(listEntity)), slog.String("kassa", kassa.Knumber.String))
 		err = storage.InsertTransactions(ctx, listEntity)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))

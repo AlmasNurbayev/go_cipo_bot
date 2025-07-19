@@ -27,7 +27,7 @@ func NewStorage(DSN string, log *slog.Logger, timeout time.Duration) (*Storage, 
 		shortDSN = DSN[idx+1:]
 	}
 
-	log.With(slog.String("op", op)).Info("init storage " + shortDSN)
+	log.With(slog.String("op", op)).Info("init storage " + shortDSN + " with timeout " + timeout.String())
 
 	newConfig, err := pgxpool.ParseConfig(DSN)
 	if err != nil {
