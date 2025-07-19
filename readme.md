@@ -11,7 +11,7 @@
 
 # Пакеты планируемые для использования
 
-- [telebot](https://github.com/tucnak/telebot)
+- [telebot](https://github.com/tucnak/telebot) - заменить
 - pgx / pgxpool / scany
 - github.com/golang-migrate/migrate
 
@@ -20,3 +20,4 @@
 - [ ] все
 - 2025-05-14 получили токен, теперь надо получить операции
 - 2025-05-15 записываем в БД транзакции полученные из КОФД, но нужно получить и записать в БД информацию из чека, названия, путь до картинки
+- 2025-07-19 заменить пакет для telegram api на более документированный https://github.com/go-telegram/bot
