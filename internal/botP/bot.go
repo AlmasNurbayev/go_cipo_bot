@@ -1,11 +1,11 @@
-package bot
+package botP
 
 import (
 	"context"
 	"log/slog"
 
-	"github.com/AlmasNurbayev/go_cipo_bot/internal/bot/middleware"
-	"github.com/AlmasNurbayev/go_cipo_bot/internal/bot/summary"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/middleware"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/summary"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 	"github.com/go-telegram/bot"

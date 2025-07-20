@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/AlmasNurbayev/go_cipo_bot/internal/bot"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/logger"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
@@ -36,12 +36,12 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	botApp, err := bot.NewApp(ctx, cfg, Log)
+	botApp, err := botP.NewApp(ctx, cfg, Log)
 	if err != nil {
 		Log.Error("error create bot app", slog.String("err", err.Error()))
 		panic(err)
 	}
-	httpApp, err := bot.NewHttpApp(cfg, Log)
+	httpApp, err := botP.NewHttpApp(cfg, Log)
 	if err != nil {
 		Log.Error("error create http app", slog.String("err", err.Error()))
 		panic(err)

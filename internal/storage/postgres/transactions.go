@@ -2,9 +2,13 @@ package storage
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
+	"github.com/georgysavva/scany/v2/pgxscan"
 )
 
 func (s *Storage) InsertTransactions(ctx context.Context,
@@ -44,4 +48,29 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 	log.Info("Inserted rows", slog.Int("rowsInserted", int(count)))
 
 	return count, nil
+}
+
+func (s *Storage) ListTransactionsByDate(ctx context.Context,
+	start time.Time, end time.Time) ([]models.TransactionEntity, error) {
+
+	op := "storage.ListTransactionsByDate"
+	log := s.log.With(slog.String("op", op))
+	var transactions []models.TransactionEntity
+
+	query := `SELECT * FROM transactions
+	WHERE operationdate >= $1 AND operationdate < $2;`
+
+	db := s.Db
+	err := pgxscan.Select(ctx, db, &transactions, query, start, end)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// если выкидывается ошибка нет строк, возвращаем пустой массив
+			return transactions, nil
+		}
+		log.Error("error: ", slog.String("err", err.Error()))
+		return transactions, err
+	}
+
+	return transactions, nil
 }
