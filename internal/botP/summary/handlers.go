@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
-	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"golang.org/x/text/language"
@@ -17,7 +17,11 @@ import (
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
-func summaryHandler(storage *storage.Storage,
+type storageI interface {
+	ListTransactionsByDate(context.Context, time.Time, time.Time) ([]modelsI.TransactionEntity, error)
+}
+
+func summaryHandler(storage storageI,
 	log *slog.Logger, cfg *config.Config) bot.HandlerFunc {
 
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -67,7 +71,7 @@ func summaryHandler(storage *storage.Storage,
 	}
 }
 
-func dateHandler(mode string, b *bot.Bot, storage *storage.Storage,
+func dateHandler(mode string, b *bot.Bot, storage storageI,
 	log *slog.Logger, cfg *config.Config) (modelsI.TypeTransactionsTotal, error) {
 
 	op := "summary.dateHandler"
@@ -144,7 +148,7 @@ func checkInlineKb(text string, data modelsI.TypeTransactionsTotal) *models.Inli
 // 	return c.Send("Сводка за день " + string(str) + " пароль " + pass)
 // }
 
-func summaryCallbackHandler(storage *storage.Storage,
+func summaryCallbackHandler(storage storageI,
 	log *slog.Logger, cfg *config.Config) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "summary.summaryCallbackHandler"
