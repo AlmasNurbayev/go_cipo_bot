@@ -2,11 +2,13 @@ package kofd_updater_services
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"strings"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/kofd_updater/api"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	"github.com/guregu/null/v5"
 )
@@ -59,6 +61,10 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 				sb.WriteString("\n")
 			}
 			checkString := sb.String()
+			names := utils.GetGoodsFromCheque(checkString)
+
+			fmt.Println("names", names)
+
 			//log.Info("checkString", slog.String("checkString", checkString))
 
 			listEntity = append(listEntity, models.TransactionEntity{
