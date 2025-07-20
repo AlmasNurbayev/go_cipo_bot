@@ -1,6 +1,6 @@
 module github.com/AlmasNurbayev/go_cipo_bot
 
-go 1.23.3
+go 1.24.5
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1
@@ -8,10 +8,10 @@ require (
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/joho/godotenv v1.5.1
 	github.com/lmittmann/tint v1.0.7
-	gopkg.in/telebot.v4 v4.0.0-beta.4
 )
 
 require (
+	github.com/go-telegram/bot v1.16.0 // indirect
 	github.com/golang-migrate/migrate/v4 v4.18.3 // indirect
 	github.com/guregu/null/v5 v5.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

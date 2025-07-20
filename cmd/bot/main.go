@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -32,7 +33,10 @@ func main() {
 	fmt.Println(string(*cfgBytes))
 	Log.Debug("debug message is enabled")
 
-	botApp, err := bot.NewApp(cfg, Log)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	botApp, err := bot.NewApp(ctx, cfg, Log)
 	if err != nil {
 		Log.Error("error create bot app", slog.String("err", err.Error()))
 		panic(err)

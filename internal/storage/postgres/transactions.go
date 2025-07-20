@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Storage) InsertTransactions(ctx context.Context,
-	transactions []models.TransactionEntity) error {
+	transactions []models.TransactionEntity) (int, error) {
 
 	op := "storage.InsertTransactions"
 	log := s.log.With(slog.String("op", op))
@@ -36,12 +36,12 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
-			return err
+			return 0, err
 		}
 		count = count + int(cmdTag.RowsAffected())
 
 	}
 	log.Info("Inserted rows", slog.Int("rowsInserted", int(count)))
 
-	return nil
+	return count, nil
 }
