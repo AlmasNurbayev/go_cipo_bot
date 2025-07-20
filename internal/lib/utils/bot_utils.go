@@ -21,42 +21,50 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 	// SumMixed := 0.0
 	// Sum := 0.0
 
+	count := 0
+
 	for _, transaction := range transactions {
 		if transaction.Type_operation == 1 { // продажа или возврат
 			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 2 { // продажа
 				if transaction.Sum_operation.Valid {
-					if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) > 0 {
-						for _, paymentType := range *transaction.Paymenttypes {
-							switch paymentType {
-							case 0:
-								SumSalesCash += transaction.Sum_operation.Float64
-							case 1:
-								SumSalesCard += transaction.Sum_operation.Float64
-							case 2:
-								SumSalesMixed += transaction.Sum_operation.Float64
-							default:
-								SumSalesOther += transaction.Sum_operation.Float64
-							}
+					if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) == 1 {
+						count++
+						switch (*transaction.Paymenttypes)[0] {
+						case 0:
+							SumSalesCash += transaction.Sum_operation.Float64
+						case 1:
+							SumSalesCard += transaction.Sum_operation.Float64
+						default:
+							SumSalesOther += transaction.Sum_operation.Float64
 						}
+					}
+					// если несколько типов платежей, то это смешанно
+					if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) > 1 {
+						count++
+						SumSalesMixed += transaction.Sum_operation.Float64
 					}
 
 				}
 			}
 			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 3 { // возврат
 				if transaction.Sum_operation.Valid {
-					if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) > 0 {
-						for _, paymentType := range *transaction.Paymenttypes {
-							switch paymentType {
-							case 0:
-								SumReturnsCash += transaction.Sum_operation.Float64
-							case 1:
-								SumReturnsCard += transaction.Sum_operation.Float64
-							case 2:
-								SumReturnsMixed += transaction.Sum_operation.Float64
-							default:
-								SumReturnsOther += transaction.Sum_operation.Float64
-							}
+					if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) == 1 {
+						//for _, paymentType := range *transaction.Paymenttypes {
+						count++
+						switch (*transaction.Paymenttypes)[0] {
+						case 0:
+							SumReturnsCash += transaction.Sum_operation.Float64
+						case 1:
+							SumReturnsCard += transaction.Sum_operation.Float64
+						default:
+							SumReturnsOther += transaction.Sum_operation.Float64
 						}
+						//}
+					}
+					// если несколько типов платежей, то это смешанно
+					if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) > 1 {
+						count++
+						SumReturnsMixed += transaction.Sum_operation.Float64
 					}
 				}
 			}
@@ -77,6 +85,7 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 	result.SumOther = SumSalesOther - SumReturnsOther
 	result.SumMixed = SumSalesMixed - SumReturnsMixed
 	result.Sum = result.SumCash + result.SumCard + result.SumOther + result.SumMixed
+	result.Count = count
 
 	return result
 }
