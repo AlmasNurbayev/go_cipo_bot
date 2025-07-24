@@ -61,8 +61,12 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 				sb.WriteString("\n")
 			}
 			checkString := sb.String()
-			names := utils.GetGoodsFromCheque(checkString)
-
+			names, err := utils.GetGoodsFromCheque(checkString)
+			if err != nil && item.Type_operation == 1 {
+				// если продажа/возврат и не удалось получить товары из чека
+				log.Error("error on get goods from cheque: ", slog.String("err", err.Error()))
+				return 0, err
+			}
 			fmt.Println("names", names)
 
 			//log.Info("checkString", slog.String("checkString", checkString))

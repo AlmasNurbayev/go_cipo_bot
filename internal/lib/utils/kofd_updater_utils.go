@@ -7,7 +7,7 @@ import (
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
-func GetGoodsFromCheque(data string) []modelsI.GoodElement {
+func GetGoodsFromCheque(data string) ([]modelsI.GoodElement, error) {
 	dataArr := strings.Split(data, "\n")
 	var names []modelsI.GoodElement
 
@@ -30,7 +30,7 @@ func GetGoodsFromCheque(data string) []modelsI.GoodElement {
 		}
 	}
 	if startGoodsBlock == 0 || endGoodsBlock == 0 || totalIndex == 0 {
-		return names
+		return names, fmt.Errorf("не удалось найти блок с товарами в чеке")
 	}
 
 	fmt.Println(startGoodsBlock, endGoodsBlock, totalIndex)
@@ -76,11 +76,28 @@ func GetGoodsFromCheque(data string) []modelsI.GoodElement {
 					findedSize = strings.TrimSpace(findedName[idx+1 : idx2])
 				}
 			}
-			names = append(names, modelsI.GoodElement{Name: trimmedName, Size: findedSize})
+			// ищем цену товара
+			priceString := ""
+			var price float64
+			positionX := strings.Index(line, " x ")
+			if positionX != -1 {
+				priceString = strings.TrimSpace(line[positionX+3 : positionSum])
+			}
+			if priceString != "" {
+				var err error
+				price, err = ParseStringToFloat(priceString)
+				if err != nil {
+					return names, fmt.Errorf("ошибка при парсинге цены товара: %v", err)
+				}
+			}
+
+			fmt.Println("priceString", priceString)
+
+			names = append(names, modelsI.GoodElement{Name: trimmedName, Size: findedSize, Price: price})
 			firstindex = 0
 		}
 
 	}
 
-	return names
+	return names, nil
 }
