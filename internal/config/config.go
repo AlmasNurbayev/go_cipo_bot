@@ -27,6 +27,9 @@ type Config struct {
 	KOFD_PASSAUTH_URL   string `env:"KOFD_PASSAUTH_URL"`
 	KOFD_OPERATIONS_URL string `env:"KOFD_OPERATIONS_URL"`
 
+	CIPO_PRODUCTS_URL string `env:"CIPO_PRODUCTS_URL"`
+	CIPO_IMAGES_URL   string `env:"CIPO_IMAGES_URL"`
+
 	GSHEETS_KEY string `env:"GSHEETS_KEY"  json:"-"`
 	GSHEETS_ID  string `env:"GSHEETS_ID"`
 

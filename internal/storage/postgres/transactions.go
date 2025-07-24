@@ -25,9 +25,9 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 			INSERT INTO transactions (kassa_id, operationdate, sum_operation, type_operation,
 				shift, subtype, systemdate, availablesum, offlinefiscalnumber,
 				onlinefiscalnumber, paymenttypes, organization_id, ofd_id,
-				ofd_name, knumber, cheque, images)
+				ofd_name, knumber, cheque, images, cheque_json)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-				$11, $12, $13, $14, $15, $16, $17)
+				$11, $12, $13, $14, $15, $16, $17, $18)
 			ON CONFLICT (ofd_id) DO NOTHING
 		`, transaction.Kassa_id, transaction.Operationdate,
 			transaction.Sum_operation, transaction.Type_operation,
@@ -36,7 +36,9 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 			transaction.Onlinefiscalnumber, transaction.Paymenttypes,
 			transaction.Organization_id,
 			transaction.Ofd_id, transaction.Ofd_name, transaction.Knumber,
-			transaction.Cheque, transaction.Images)
+			transaction.Cheque, transaction.Images,
+			transaction.ChequeJSON,
+		)
 
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
@@ -73,4 +75,29 @@ func (s *Storage) ListTransactionsByDate(ctx context.Context,
 	}
 
 	return transactions, nil
+}
+
+func (s *Storage) CheckExistsTransactions(ctx context.Context,
+	kofd_ids []string) ([]string, error) {
+
+	op := "storage.CheckExistsTransactions"
+	log := s.log.With(slog.String("op", op))
+	var existsIds []string
+
+	query := `SELECT ofd_id FROM transactions
+	WHERE ofd_id = ANY($1);`
+
+	db := s.Db
+	err := pgxscan.Select(ctx, db, &existsIds, query, kofd_ids)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// если выкидывается ошибка нет строк, возвращаем пустой массив
+			return existsIds, nil
+		}
+		log.Error("error: ", slog.String("err", err.Error()))
+		return existsIds, err
+	}
+
+	return existsIds, nil
 }

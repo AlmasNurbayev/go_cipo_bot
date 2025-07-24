@@ -2,8 +2,8 @@ package kofd_updater_services
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
@@ -11,12 +11,14 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	"github.com/guregu/null/v5"
+	"golang.org/x/sync/errgroup"
 )
 
 type storageOperations interface {
 	ListKassa(context.Context) ([]models.KassaEntity, error)
 	ListOrganizations(context.Context) ([]models.OrganizationEntity, error)
 	InsertTransactions(context.Context, []models.TransactionEntity) (int, error)
+	CheckExistsTransactions(context.Context, []string) ([]string, error)
 }
 
 func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *config.Config, log *slog.Logger,
@@ -47,29 +49,25 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 			return 0, err
 		}
 		listEntity := []models.TransactionEntity{}
+
+		// перед спамом запросов проверяем, есть ли такие транзакции в базе
+		ids := make([]string, len(list.Data))
+		for i, item := range list.Data {
+			ids[i] = item.Id
+		}
+		existsIds, err := storage.CheckExistsTransactions(ctx, ids)
+		if err != nil {
+			log.Error("error: ", slog.String("err", err.Error()))
+			return 0, err
+		}
+
+		// сначала берем простые поля в цикле
 		for _, item := range list.Data {
 
-			check, err := api.KofdGetCheck(cfg, log, kassa.Knumber.String, token, item.Id)
-			if err != nil {
-				log.Error("error on get check: ", slog.String("err", err.Error()))
+			if slices.Contains(existsIds, item.Id) {
+				log.Info("transaction already exists, skip for get cheque", slog.String("id", item.Id))
+				continue // если транзакция уже есть, пропускаем
 			}
-
-			var sb strings.Builder
-			//log.Info("get check", slog.String("id", item.Id), slog.Int("count", len(check.Data)))
-			for _, item := range check.Data {
-				sb.WriteString(strings.TrimSpace(item.Text))
-				sb.WriteString("\n")
-			}
-			checkString := sb.String()
-			names, err := utils.GetGoodsFromCheque(checkString)
-			if err != nil && item.Type_operation == 1 {
-				// если продажа/возврат и не удалось получить товары из чека
-				log.Error("error on get goods from cheque: ", slog.String("err", err.Error()))
-				return 0, err
-			}
-			fmt.Println("names", names)
-
-			//log.Info("checkString", slog.String("checkString", checkString))
 
 			listEntity = append(listEntity, models.TransactionEntity{
 				Ofd_id:              item.Id,
@@ -86,10 +84,50 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 				Shift:               null.IntFrom(int64(item.Shift)),
 				Organization_id:     kassa.Organization_id,
 				Kassa_id:            kassa.Id,
-				Cheque:              null.StringFrom(checkString),
 				Knumber:             kassa.Knumber,
 			})
 		}
+
+		// через горутины получаем чеки
+		var g errgroup.Group
+		semaphore := make(chan struct{}, 10)
+
+		for index := range listEntity {
+			idx := index            // захват переменной цикла
+			semaphore <- struct{}{} // занимаем слот перед запуском горутины
+
+			g.Go(func() error {
+				defer func() { <-semaphore }() // освободить слот
+
+				cheque, err := api.KofdGetCheck(cfg, log, kassa.Knumber.String, token, listEntity[index].Ofd_id)
+				if err != nil {
+					log.Error("error on get check: ", slog.String("err", err.Error()))
+				}
+				log.Info("get and parse check from API", slog.String("id", listEntity[idx].Ofd_id))
+				var sb strings.Builder
+				for _, item := range cheque.Data {
+					sb.WriteString(strings.TrimSpace(item.Text))
+					sb.WriteString("\n")
+				}
+				chequeString := sb.String()
+				names, err := utils.GetGoodsFromCheque(chequeString)
+				if err != nil && listEntity[idx].Type_operation == 1 {
+					// если продажа/возврат и не удалось получить товары из чека
+					log.Error("error on get goods from cheque: ", slog.String("err", err.Error()))
+					return err
+				}
+
+				// безопасно: каждый goroutine пишет только по своему индексу
+				listEntity[idx].Cheque = null.StringFrom(chequeString)
+				listEntity[idx].ChequeJSON = names
+				return nil
+			})
+		}
+
+		if err := g.Wait(); err != nil {
+			return 0, err // ошибка из любой горутины
+		}
+
 		log.Info("get transactions from api", slog.Int("count", len(listEntity)), slog.String("kassa", kassa.Knumber.String))
 		count, err := storage.InsertTransactions(ctx, listEntity)
 		if err != nil {

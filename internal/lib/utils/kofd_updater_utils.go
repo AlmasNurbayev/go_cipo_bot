@@ -5,11 +5,12 @@ import (
 	"strings"
 
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
+	"github.com/guregu/null/v5"
 )
 
-func GetGoodsFromCheque(data string) ([]modelsI.GoodElement, error) {
+func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 	dataArr := strings.Split(data, "\n")
-	var names []modelsI.GoodElement
+	var names modelsI.ChequeJSONList
 
 	startGoodsBlock := 0
 	endGoodsBlock := 0
@@ -33,7 +34,7 @@ func GetGoodsFromCheque(data string) ([]modelsI.GoodElement, error) {
 		return names, fmt.Errorf("не удалось найти блок с товарами в чеке")
 	}
 
-	fmt.Println(startGoodsBlock, endGoodsBlock, totalIndex)
+	//fmt.Println(startGoodsBlock, endGoodsBlock, totalIndex)
 	//var existedIndexes []int
 	firstindex, lastindex := 0, 0
 
@@ -51,7 +52,7 @@ func GetGoodsFromCheque(data string) ([]modelsI.GoodElement, error) {
 			}
 		} else {
 			lastindex = i - 1
-			fmt.Println("firstindex", firstindex, "lastindex", lastindex)
+			//fmt.Println("firstindex", firstindex, "lastindex", lastindex)
 			findedName := ""
 			trimmedName := ""
 			findedSize := ""
@@ -90,13 +91,30 @@ func GetGoodsFromCheque(data string) ([]modelsI.GoodElement, error) {
 					return names, fmt.Errorf("ошибка при парсинге цены товара: %v", err)
 				}
 			}
+			// ищем количество товара во второй строке под товаром - все что левее скобки
+			var qnt int
+			positionBracketQnt := strings.Index(line, "(")
+			qntString := ""
+			if positionBracketQnt != -1 {
 
-			fmt.Println("priceString", priceString)
+				qntString = strings.TrimSpace(line[:positionBracketQnt-1])
+				var err error
+				qnt, err = ParseStringToInt(qntString)
+				if err != nil {
+					return names, fmt.Errorf("ошибка при парсинге количества товара: %v", err)
+				}
+			} else {
+				return names, fmt.Errorf("не удалось найти количество товара")
+			}
 
-			names = append(names, modelsI.GoodElement{Name: trimmedName, Size: findedSize, Price: price})
+			//fmt.Println("priceString", priceString)
+			names = append(names, modelsI.ChequeJSONElement{
+				Name:  trimmedName,
+				Size:  null.NewString(findedSize, findedSize != ""),
+				Price: price,
+				Qnt:   qnt})
 			firstindex = 0
 		}
-
 	}
 
 	return names, nil
