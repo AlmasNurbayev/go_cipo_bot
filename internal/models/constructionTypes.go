@@ -47,10 +47,3 @@ type TypeKassaTotal struct {
 	SumMixed         float64
 	Sum              float64
 }
-
-type GoodElement struct {
-	Name  string
-	Size  string
-	Price float64
-	Qnt   int
-}

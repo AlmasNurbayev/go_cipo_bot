@@ -33,10 +33,12 @@ type TransactionEntity struct {
 }
 
 type ChequeJSONElement struct {
-	Name  string      `json:"name" db:"name"`
-	Size  null.String `json:"size" db:"size"`
-	Price float64     `json:"price" db:"price"`
-	Qnt   int         `json:"qnt" db:"qnt"`
+	Name          string      `json:"name" db:"name"`
+	Size          null.String `json:"size" db:"size"`
+	NominalPrice  float64     `json:"nominal_price" db:"nominal_price"`
+	DiscountPrice float64     `json:"discount_price" db:"discount_price"`
+	Sum           float64     `json:"sum" db:"sum"`
+	Qnt           int         `json:"qnt" db:"qnt"`
 }
 
 type ChequeJSONList []ChequeJSONElement

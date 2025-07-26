@@ -8,7 +8,7 @@ bot:
 	go run cmd/bot/main.go -configEnv ./.env
 
 updater:
-	go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2025-07-19" -lastDate "2025-07-22" -bin "800727301256" 
+	go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2025-07-01" -lastDate "2025-07-26" -bin "800727301256" 
 
 migrate_up:
 	go run cmd/migrator/main.go -typeTask "up" -dsn "postgres://postgres:postgres@localhost:5911/go_cipo_bot?sslmode=disable"
