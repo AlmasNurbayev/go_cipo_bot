@@ -88,6 +88,16 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 			})
 		}
 
+		// сортируем по времени Operationdate, чтобы id отражали порядок
+		slices.SortFunc(listEntity, func(a, b models.TransactionEntity) int {
+			if a.Operationdate.Time.Before(b.Operationdate.Time) {
+				return -1
+			} else if a.Operationdate.Time.After(b.Operationdate.Time) {
+				return 1
+			}
+			return 0
+		})
+
 		// через горутины получаем чеки
 		var g errgroup.Group
 		semaphore := make(chan struct{}, 10)

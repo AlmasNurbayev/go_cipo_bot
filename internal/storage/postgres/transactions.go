@@ -101,3 +101,30 @@ func (s *Storage) CheckExistsTransactions(ctx context.Context,
 
 	return existsIds, nil
 }
+
+func (s *Storage) GetLastTransactions(ctx context.Context, afterDate time.Time) ([]models.TransactionEntity, error) {
+
+	op := "storage.GetLastTransactions"
+	log := s.log.With(slog.String("op", op))
+	var transactions []models.TransactionEntity
+
+	// если продажи/возвраты (1), закрытие смены (2), X-отчет (3), выемка/внесение (6)
+	query := `SELECT * FROM transactions
+	WHERE operationdate > $1 
+	and (type_operation = 1 OR type_operation = 2 OR type_operation = 3 OR type_operation = 6)
+   order by id desc;`
+
+	db := s.Db
+	err := pgxscan.Select(ctx, db, &transactions, query, afterDate)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// если выкидывается ошибка нет строк, возвращаем пустой массив
+			return transactions, nil
+		}
+		log.Error("error: ", slog.String("err", err.Error()))
+		return transactions, err
+	}
+
+	return transactions, nil
+}

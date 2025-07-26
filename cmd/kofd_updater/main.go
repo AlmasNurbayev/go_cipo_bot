@@ -69,6 +69,7 @@ func main() {
 		return
 	}
 
+	// загружаем транзакции за заданный период из КОФД в БД
 	_, err = kofd_updater_services.GetOperationsFromApi(ctx, storage, cfg, Log, bin, token, firstDate, lastDate)
 	if err != nil {
 		Log.Error("error: ", slog.String("err", err.Error()))
@@ -79,11 +80,27 @@ func main() {
 		storage.Close()
 		return
 	}
+
+	// определяем новые транзакции для каждого пользователя
+	messages, err := kofd_updater_services.DetectNewOperations(ctx, storage, Log)
+	if err != nil {
+		Log.Error("error: ", slog.String("err", err.Error()))
+		err = pgxTransaction.Rollback(ctx)
+		if err != nil {
+			Log.Error("Error rollback all db changes:", slog.String("err", err.Error()))
+		}
+		storage.Close()
+		return
+	}
+	Log.Info("messages", slog.Int("count", len(messages)))
+
 	err = pgxTransaction.Commit(ctx)
 	if err != nil {
 		Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
 	} else {
 		Log.Info("DB changes committed")
 	}
+
+	storage.Close()
 
 }

@@ -37,3 +37,29 @@ func (s *Storage) ListUsers(ctx context.Context) ([]models.UserEntity, error) {
 	}
 	return users, nil
 }
+
+func (s *Storage) SetCursor(ctx context.Context, cursorId int64, userId int64) error {
+	op := "storage.SetCursor"
+	log := s.log.With(slog.String("op", op))
+
+	if userId == 0 || cursorId == 0 {
+		return errors.New("user id or cursor id is empty")
+	}
+	query := `UPDATE users SET transaction_cursor = $1 WHERE id = $2;`
+
+	// если есть транзакция, используем ее, иначе стандартный пул
+	var err error
+	if s.Tx != nil {
+		db := *s.Tx
+		_, err = db.Exec(ctx, query, cursorId, userId)
+	} else {
+		db := s.Db
+		_, err = db.Exec(ctx, query, cursorId, userId)
+	}
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return err
+	}
+
+	return nil
+}
