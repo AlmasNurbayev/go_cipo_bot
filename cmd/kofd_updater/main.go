@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"strconv"
+	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/kofd_updater/kofd_updater_services"
@@ -19,17 +21,36 @@ func main() {
 		configEnv string
 		firstDate string
 		lastDate  string
+		days      string
 		bin       string
 	)
 	flag.StringVar(&configEnv, "configEnv", "", "Path to env-file")
 	flag.StringVar(&firstDate, "firstDate", "", "Date in format YYYY-MM-DD")
 	flag.StringVar(&lastDate, "lastDate", "", "Date in format YYYY-MM-DD")
+	flag.StringVar(&days, "days", "", "Number of last days to update")
 	flag.StringVar(&bin, "bin", "", "BIN of organization")
 	flag.Parse()
 
 	cfg := config.Mustload(configEnv)
 	Log := logger.InitLogger(cfg.ENV)
 	Log.Info("=== start kofd_updater ===")
+
+	// проверяем наличие дат
+	if firstDate == "" && lastDate == "" && days == "" {
+		Log.Error("not set dates - firstDate, lastDate or days")
+		return
+	}
+	if days != "" {
+		daysNumber, err := strconv.Atoi(days)
+		if err != nil {
+			Log.Error("not correct days", slog.String("err", err.Error()))
+			return
+		}
+		now := time.Now()
+		lastDate = now.Format("2006-01-02")
+		firstDate = now.AddDate(0, 0, -daysNumber).Format("2006-01-02")
+	}
+	Log.Info("dates", slog.String("firstDate", firstDate), slog.String("lastDate", lastDate))
 
 	Log.Info("load config: ")
 	cfgBytes, err := utils.PrintAsJSON(cfg)

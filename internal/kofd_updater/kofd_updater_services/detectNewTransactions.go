@@ -20,29 +20,32 @@ func DetectNewOperations(ctx context.Context, storage storageOperations2,
 
 	op := "kofd_updater.services.DetectNewOperations"
 	log = log.With(slog.String("op", op))
+	var messages []models.MessagesType
 
 	before10days := time.Now().Add(-240 * time.Hour)
 	operations, err := storage.GetLastTransactions(ctx, before10days)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
-		return nil, err
+		return messages, err
+	}
+	if len(operations) == 0 {
+		return messages, nil
 	}
 	log.Info("operations", slog.Int("count", len(operations)))
 
 	users, err := storage.ListUsers(ctx)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
-		return nil, err
+		return messages, err
 	}
 
-	var messages []models.MessagesType
 	for _, user := range users {
 		if user.Transaction_cursor.Int64 == 0 {
 			log.Info("Чистый курсор, отправляем последнюю операцию", slog.String("user", user.Telegram_id))
 			err = storage.SetCursor(ctx, operations[len(operations)-1].Id, user.Id)
 			if err != nil {
 				log.Error("не удалось установать курсор: ", slog.String("err", err.Error()))
-				return nil, err
+				return messages, err
 			}
 			messages = append(messages, models.MessagesType{
 				Created_at:   time.Now(),
@@ -71,7 +74,7 @@ func DetectNewOperations(ctx context.Context, storage storageOperations2,
 			err = storage.SetCursor(ctx, newCursor, user.Id)
 			if err != nil {
 				log.Error("не удалось установать курсор: ", slog.String("err", err.Error()))
-				return nil, err
+				return messages, err
 			}
 			messages = append(messages, models.MessagesType{
 				Created_at:   time.Now(),
