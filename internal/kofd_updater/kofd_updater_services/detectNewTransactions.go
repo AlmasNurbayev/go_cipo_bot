@@ -71,17 +71,17 @@ func DetectNewOperations(ctx context.Context, storage storageOperations2,
 				// если не нашли операций новее курсора, то пропускаем юзера
 				continue
 			}
-			err = storage.SetCursor(ctx, newCursor, user.Id)
-			if err != nil {
-				log.Error("не удалось установать курсор: ", slog.String("err", err.Error()))
-				return messages, err
-			}
 			messages = append(messages, models.MessagesType{
 				Created_at:   time.Now(),
 				UserId:       user.Id,
 				Transactions: transactionsForMessage,
 			})
 			fmt.Println("Transactions in messages:", len(transactionsForMessage))
+			err = storage.SetCursor(ctx, newCursor, user.Id)
+			if err != nil {
+				log.Error("не удалось установать курсор: ", slog.String("err", err.Error()))
+				return messages, err
+			}
 		}
 
 	}

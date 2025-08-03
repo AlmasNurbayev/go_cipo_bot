@@ -115,6 +115,23 @@ func main() {
 	}
 	Log.Info("messages", slog.Int("count", len(messages)))
 
+	// отправляем операции в брокер
+	if len(messages) == 0 {
+		Log.Info("no new updates for users")
+		err = pgxTransaction.Commit(ctx)
+		if err != nil {
+			Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
+		} else {
+			Log.Info("DB changes committed")
+		}
+		storage.Close()
+		return
+	}
+	err = kofd_updater_services.SendToKafka(cfg, Log, messages)
+	if err != nil {
+		Log.Error("Error kafka send:", slog.String("err", err.Error()))
+	}
+
 	err = pgxTransaction.Commit(ctx)
 	if err != nil {
 		Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
