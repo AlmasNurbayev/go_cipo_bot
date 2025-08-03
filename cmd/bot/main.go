@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"syscall"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
@@ -47,20 +46,30 @@ func main() {
 		panic(err)
 	}
 
+	kafka, err := botP.NewKafkaReader(ctx, cfg, Log, botApp.Bot, botApp.Storage)
+	if err != nil {
+		Log.Error("error create kafka app", slog.String("err", err.Error()))
+		panic(err)
+	}
+
 	go func() {
 		botApp.Run()
 	}()
 	go func() {
 		httpApp.Run()
 	}()
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		kafka.Run()
+	}()
 
-	signalString := <-done
-	Log.Info("received signal " + signalString.String())
-	fmt.Println("received signal " + signalString.String())
+	//done := make(chan os.Signal, 1)
+	//signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	<-ctx.Done()
+	Log.Info("received signal DONE signal")
+	fmt.Println("received signal DONE signal")
 
 	botApp.Stop()
 	httpApp.Stop()
-	Log.Warn("bot and http server stopped")
+	Log.Warn("bot, http server, kafka stopped")
 }

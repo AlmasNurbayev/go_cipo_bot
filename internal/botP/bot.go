@@ -55,9 +55,9 @@ func NewApp(ctx context.Context, cfg *config.Config, log *slog.Logger) (*BotApp,
 
 func (b *BotApp) Run() {
 	summary.Init(b.Bot, b.Storage, b.Log, b.Cfg)
-
+	b.Log.Info("bot try started", slog.String("port", "8443"))
 	b.Bot.Start(b.Ctx)
-	b.Log.Info("bot started", slog.String("port", "8443"))
+
 }
 
 func (b *BotApp) Stop() {

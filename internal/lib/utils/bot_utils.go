@@ -1,6 +1,10 @@
 package utils
 
 import (
+	"slices"
+	"strconv"
+	"strings"
+
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
@@ -88,4 +92,55 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 	result.Count = count
 
 	return result
+}
+
+func ConvertNewOperationToMessageText(message modelsI.MessagesType,
+	kassas []modelsI.KassaEntity) string {
+	var sb strings.Builder
+	for _, tx := range message.Transactions {
+		sumStr := "<b>" + FormatNumber(tx.Sum_operation.Float64) + "</b>"
+
+		kassa := slices.IndexFunc(kassas, func(k modelsI.KassaEntity) bool { return k.Id == tx.Kassa_id })
+		kassaString := ""
+
+		if kassa != -1 {
+			kassaString = kassas[kassa].Name_kassa
+		}
+
+		sb.WriteString(" 💸 " + kassaString + " №" + strconv.FormatInt(tx.Id, 10) + " от " +
+			tx.Operationdate.Time.Format("15:04") + " " +
+			GetTypeOperationText(tx) +
+			" " + sumStr + "\n")
+
+		for _, item := range tx.ChequeJSON {
+			sb.WriteString(" • " + item.Name + " (" + item.Size.String + ") ₸ " + FormatNumber(item.Sum) + "\n")
+		}
+
+	}
+	return sb.String()
+}
+
+func GetTypeOperationText(oper modelsI.TransactionEntity) string {
+	switch oper.Type_operation {
+	case 1:
+		switch oper.Subtype.Int64 {
+		case 2:
+			return "Продажа"
+		case 3:
+			return "Возврат"
+		}
+	case 2:
+		switch oper.Subtype.Int64 {
+		case 0:
+			return "Закрытие смены"
+		}
+	case 6:
+		switch oper.Subtype.Int64 {
+		case 1:
+			return "Выемка"
+		}
+	default:
+		return "Неизвестно"
+	}
+	return "Неизвестно"
 }

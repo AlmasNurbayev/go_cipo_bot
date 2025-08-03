@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
@@ -36,4 +37,24 @@ func ParseStringToInt(s string) (int, error) {
 	result, err := strconv.ParseInt(cleaned, 10, 64)
 
 	return int(result), err
+}
+
+func FormatNumber(n float64) string {
+	s := fmt.Sprintf("%.0f", n) // округляем и убираем дробную часть
+	var result []string
+	for i, c := range reverse(s) {
+		if i > 0 && i%3 == 0 {
+			result = append(result, " ")
+		}
+		result = append(result, string(c))
+	}
+	return reverse(strings.Join(result, ""))
+}
+
+func reverse(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
 }
