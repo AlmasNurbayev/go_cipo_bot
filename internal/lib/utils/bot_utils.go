@@ -19,6 +19,9 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 	SumReturnsCard := 0.0
 	SumReturnsOther := 0.0
 	SumReturnsMixed := 0.0
+
+	SumInputCash := 0.0
+	SumOutputCash := 0.0
 	// SumCash := 0.0
 	// SumCard := 0.0
 	// SumOther := 0.0
@@ -28,6 +31,14 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 	count := 0
 
 	for _, transaction := range transactions {
+		if transaction.Type_operation == 6 { // выемка или внесение
+			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 0 { // внесение
+					SumInputCash += transaction.Sum_operation.Float64
+			}	
+			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 1 { // выемка
+					SumOutputCash += transaction.Sum_operation.Float64
+			}	
+		}	
 		if transaction.Type_operation == 1 { // продажа или возврат
 			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 2 { // продажа
 				if transaction.Sum_operation.Valid {
@@ -47,7 +58,6 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 						count++
 						SumSalesMixed += transaction.Sum_operation.Float64
 					}
-
 				}
 			}
 			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 3 { // возврат
@@ -72,7 +82,7 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 					}
 				}
 			}
-		}
+		
 	}
 	result.SumSales = SumSalesCash + SumSalesCard + SumSalesOther + SumSalesMixed
 	result.SumSalesCash = SumSalesCash
@@ -90,6 +100,8 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 	result.SumMixed = SumSalesMixed - SumReturnsMixed
 	result.Sum = result.SumCash + result.SumCard + result.SumOther + result.SumMixed
 	result.Count = count
+	result.SumInputCash = SumInputCash
+	result.SumOutputCash = SumOutputCash 
 
 	return result
 }
@@ -136,6 +148,9 @@ func GetTypeOperationText(oper modelsI.TransactionEntity) string {
 		}
 	case 6:
 		switch oper.Subtype.Int64 {
+		case 0:
+			return "Внесение"
+		}
 		case 1:
 			return "Выемка"
 		}

@@ -18,6 +18,8 @@ type TypeTransactionsTotal struct {
 	SumReturnsOther float64
 	SumReturnsMixed float64
 	SumCash         float64
+	SumInputCash    float64
+	SumOutputCash		float64
 	SumCard         float64
 	SumOther        float64
 	SumMixed        float64
