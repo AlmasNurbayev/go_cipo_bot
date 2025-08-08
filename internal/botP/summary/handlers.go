@@ -63,11 +63,13 @@ func summaryHandler(storage storageI,
 				"        карта: " + p.Sprintf("%.0f", data.SumSalesCard) + "\n" +
 				"        смешанно: " + p.Sprintf("%.0f", data.SumSalesMixed) + "\n" +
 				"        прочее: " + p.Sprintf("%.0f", data.SumSalesOther) + "\n" +
-				"сумма возвратов: " + p.Sprintf("%.0f", data.SumReturns),
+				"сумма возвратов: " + p.Sprintf("%.0f", data.SumReturns) + "\n" +
+				"\n" +
+				"Выемки: " + p.Sprintf("%.0f", data.SumOutputCash) + "\n" +
+				"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n",
 			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: checkInlineKb(msg.Text, data),
 		})
-
 	}
 }
 
