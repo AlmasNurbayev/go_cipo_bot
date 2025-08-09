@@ -33,12 +33,12 @@ type KofdAuthenticateResponseData struct {
 }
 
 func KofdGetToken(sendBody KofdAuthenticateRequest, cfg *config.Config,
-	log *slog.Logger) (KofdAuthenticateResponse, error) {
+	log1 *slog.Logger) (KofdAuthenticateResponse, error) {
 
 	var response = KofdAuthenticateResponse{}
 
 	op := "api.KofdGetToken"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	base, err := url.Parse(cfg.KOFD_PASSAUTH_URL)
 	if err != nil {

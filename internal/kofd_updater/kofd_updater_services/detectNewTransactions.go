@@ -16,10 +16,10 @@ type storageOperations2 interface {
 }
 
 func DetectNewOperations(ctx context.Context, storage storageOperations2,
-	log *slog.Logger) ([]models.MessagesType, error) {
+	log1 *slog.Logger) ([]models.MessagesType, error) {
 
 	op := "kofd_updater.services.DetectNewOperations"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 	var messages []models.MessagesType
 
 	before10days := time.Now().Add(-240 * time.Hour)

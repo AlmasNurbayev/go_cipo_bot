@@ -16,11 +16,11 @@ import (
 )
 
 func summaryHandler(storage storageI,
-	log *slog.Logger, cfg *config.Config) bot.HandlerFunc {
+	log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
 
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "summary.summaryButtonHandler"
-		log = log.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.Message.From.ID)), slog.String("user name", update.Message.From.Username))
+		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.Message.From.ID)), slog.String("user name", update.Message.From.Username))
 		msg := update.Message
 		if msg == nil {
 			return
@@ -91,25 +91,23 @@ func summaryInlineKb(data1 time.Time, data2 time.Time) *models.InlineKeyboardMar
 			},
 		},
 	}
-	//}
-	return nil
 }
 
 func summaryCallbackHandler(storage storageI,
-	log *slog.Logger, cfg *config.Config) bot.HandlerFunc {
+	log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "summary.summaryCallbackHandler"
-		log = log.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
+		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
 			slog.String("user name", update.CallbackQuery.From.Username))
 		if update.CallbackQuery == nil {
 			return
 		}
 		cb := update.CallbackQuery
-		log.Info("summary called callback", slog.String("data", cb.Data))
-		// b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-		// 	CallbackQueryID: update.CallbackQuery.ID,
-		// 	ShowAlert:       false,
-		// })
+		log.Info("called callback", slog.String("data", cb.Data))
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			ShowAlert:       false,
+		})
 
 		if strings.Contains(cb.Data, "summary_allChecks_") {
 			response, markups, err := getAllChecks(cb.Data, b, storage, log, cfg)
@@ -146,5 +144,30 @@ func summaryCallbackHandler(storage storageI,
 		}
 		//if cb.Data == "summary_Day" {
 
+	}
+}
+
+func summaryGetCheckHandler(storage storageI,
+	log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
+	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
+		op := "summary.summaryGetCheckHandler"
+		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
+			slog.String("user name", update.CallbackQuery.From.Username), slog.String("test", "test"))
+		if update.CallbackQuery == nil {
+			return
+		}
+		cb := update.CallbackQuery
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			ShowAlert:       false,
+		})
+
+		log.Info("called callback", slog.String("data", cb.Data))
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:    cb.Message.Message.Chat.ID,
+			Text:      "cheque",
+			ParseMode: models.ParseModeHTML,
+			//ReplyMarkup: markups,
+		})
 	}
 }

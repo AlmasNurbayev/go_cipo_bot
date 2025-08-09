@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,10 +20,10 @@ type storageI interface {
 }
 
 func getSummaryDate(mode string, storage storageI,
-	log *slog.Logger) (modelsI.TypeTransactionsTotal, error) {
+	log1 *slog.Logger) (modelsI.TypeTransactionsTotal, error) {
 
 	op := "summary.getSummaryDate"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	var result modelsI.TypeTransactionsTotal
 
@@ -50,14 +51,14 @@ func getSummaryDate(mode string, storage storageI,
 }
 
 func getAllChecks(mode string, b *bot.Bot, storage storageI,
-	log *slog.Logger, cfg *config.Config) (string, *models.InlineKeyboardMarkup, error) {
+	log1 *slog.Logger, cfg *config.Config) (string, models.InlineKeyboardMarkup, error) {
 
 	op := "summary.getAllChecks"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
-	markups := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{},
-	}
+	var markups models.InlineKeyboardMarkup
+	var inlineKeyboard [][]models.InlineKeyboardButton
+
 	mode = strings.ReplaceAll(mode, "summary_allChecks_", "")
 
 	// Получаем границы текущего дня в локальном времени
@@ -75,10 +76,11 @@ func getAllChecks(mode string, b *bot.Bot, storage storageI,
 	}
 
 	var sb strings.Builder
-	for _, cheque := range data {
 
-		//+ " " +
-		//		cheque.ChequeJSON[0].Name + " /р. " + cheque.ChequeJSON[0].Size.String +
+	var keyboardButtons []models.InlineKeyboardButton
+
+	for index, cheque := range data {
+
 		sb.WriteString("<b>")
 		sb.WriteString(cheque.Kassa_name.String + " - " + strings.TrimSpace(cheque.Operationdate.Time.Format("15:04")) +
 			" - " + utils.FormatNumber(cheque.Sum_operation.Float64) + " ₸")
@@ -90,22 +92,38 @@ func getAllChecks(mode string, b *bot.Bot, storage storageI,
 			}
 		}
 		sb.WriteString("\n")
+		keyboardButtons = append(keyboardButtons, models.InlineKeyboardButton{
+			Text:         strconv.Itoa(index + 1),
+			CallbackData: "getCheck_" + strconv.Itoa(int(cheque.Id)),
+		},
+		)
+	}
+
+	if len([]rune(sb.String())) > 4096 {
+		// нужно возвращать пустой markup, иначе не уйдет
+		return "сообщение слишком большое, сократите период",
+			models.InlineKeyboardMarkup{
+				InlineKeyboard: [][]models.InlineKeyboardButton{},
+			}, err
 	}
 
 	log.Info("transactions count", slog.Int("count", len(data)))
 
-	if len([]rune(sb.String())) > 4096 {
-		return "сообщение слишком большое, сократите период", markups, err
+	if len(keyboardButtons) > 0 {
+		inlineKeyboard = append(inlineKeyboard, keyboardButtons)
+	}
+	markups = models.InlineKeyboardMarkup{
+		InlineKeyboard: inlineKeyboard,
 	}
 
 	return sb.String(), markups, nil
 }
 
 func getAnalytics(mode string, storage storageI,
-	log *slog.Logger, cfg *config.Config) (string, *models.InlineKeyboardMarkup, error) {
+	log1 *slog.Logger, cfg *config.Config) (string, *models.InlineKeyboardMarkup, error) {
 
 	op := "summary.getAnalytics"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	markups := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{},

@@ -18,6 +18,8 @@ func Init(b *bot.Bot, storage *storage.Storage,
 	b.RegisterHandler(bot.HandlerTypeMessageText, "итоги", bot.MatchTypePrefix, summaryHandler(storage, log, cfg))
 	// услышать нажатия на inline-кнопки из сообщений
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "summary_", bot.MatchTypePrefix, summaryCallbackHandler(storage, log, cfg))
+
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "getCheck_", bot.MatchTypePrefix, summaryGetCheckHandler(storage, log, cfg))
 }
 
 func initKeyboard(ctx context.Context, b *bot.Bot, update *models.Update) {

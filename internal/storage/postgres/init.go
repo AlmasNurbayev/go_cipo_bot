@@ -17,7 +17,7 @@ type Storage struct {
 	Tx  *pgx.Tx
 }
 
-func NewStorage(ctx context.Context, DSN string, log *slog.Logger) (*Storage, error) {
+func NewStorage(ctx context.Context, DSN string, log1 *slog.Logger) (*Storage, error) {
 	// ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	// defer cancel()
 	const op = "postgres.NewStorage"
@@ -26,7 +26,8 @@ func NewStorage(ctx context.Context, DSN string, log *slog.Logger) (*Storage, er
 		shortDSN = DSN[idx+1:]
 	}
 
-	log.With(slog.String("op", op)).Info("init storage " + shortDSN)
+	log := log1.With(slog.String("op", op))
+	log.Info("init storage " + shortDSN)
 
 	newConfig, err := pgxpool.ParseConfig(DSN)
 	if err != nil {

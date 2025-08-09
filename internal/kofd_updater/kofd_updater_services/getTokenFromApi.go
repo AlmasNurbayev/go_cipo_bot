@@ -20,11 +20,11 @@ type storageToken interface {
 }
 
 // get token from KOFD auth by password and save it to DB
-func GetTokenFormApi(ctx context.Context, storage storageToken, log *slog.Logger, bin string,
+func GetTokenFormApi(ctx context.Context, storage storageToken, log1 *slog.Logger, bin string,
 	cfg *config.Config) (string, error) {
 
 	op := "kofd_updater.services.GetTokenFormApi"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 	token := ""
 
 	organizationsList, err := storage.ListOrganizations(ctx)

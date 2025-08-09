@@ -21,11 +21,11 @@ type storageOperations interface {
 	CheckExistsTransactions(context.Context, []string) ([]string, error)
 }
 
-func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *config.Config, log *slog.Logger,
+func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *config.Config, log1 *slog.Logger,
 	BIN string, token string, firstDate string, lastDate string) (int, error) {
 
 	op := "kofd_updater.services.GetOperationsService"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	// ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
 	// defer cancel()

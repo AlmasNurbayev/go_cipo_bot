@@ -82,12 +82,12 @@ type qntPriceRegistryGroup struct {
 }
 
 func CipoGetProduct(cfg *config.Config,
-	log *slog.Logger, name_1c string, token string) (ProductByIdResponse, error) {
+	log1 *slog.Logger, name_1c string, token string) (ProductByIdResponse, error) {
 
 	var response = ProductByIdResponse{}
 
 	op := "api.CipoGetProduct"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	base, err := url.Parse(cfg.CIPO_PRODUCTS_URL)
 	if err != nil {

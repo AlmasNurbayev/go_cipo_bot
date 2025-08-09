@@ -7,11 +7,11 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 )
 
-func GetToken(ctx context.Context, storage storageToken, log *slog.Logger, bin string,
+func GetToken(ctx context.Context, storage storageToken, log1 *slog.Logger, bin string,
 	cfg *config.Config) (string, error) {
 
 	op := "kofd_updater.services.GetToken"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	// ищем сначала токен в базе данных
 	tokens, err := storage.ListActiveTokens(ctx, bin)

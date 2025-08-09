@@ -21,13 +21,13 @@ type KofdCheckResponseData struct {
 }
 
 func KofdGetCheck(cfg *config.Config,
-	log *slog.Logger, knumber string, token string,
+	log1 *slog.Logger, knumber string, token string,
 	id string) (KofdCheckResponseData, error) {
 
 	var response = KofdCheckResponseData{}
 
 	op := "api.KofdGetCheck"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	base, err := url.Parse(cfg.KOFD_OPERATIONS_URL + "/operation")
 	if err != nil {

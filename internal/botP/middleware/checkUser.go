@@ -14,7 +14,7 @@ type storageI interface {
 	ListUsers(context.Context) ([]modelsI.UserEntity, error)
 }
 
-func CheckUser(storage storageI, log *slog.Logger) bot.Middleware {
+func CheckUser(storage storageI, log1 *slog.Logger) bot.Middleware {
 	return func(next bot.HandlerFunc) bot.HandlerFunc {
 		return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 			if update.Message == nil {
@@ -23,7 +23,7 @@ func CheckUser(storage storageI, log *slog.Logger) bot.Middleware {
 			}
 
 			op := "middleware.CheckUser"
-			log = log.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.Message.From.ID)),
+			log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.Message.From.ID)),
 				slog.String("user name", update.Message.From.Username))
 
 			// ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -51,10 +51,10 @@ func CheckUser(storage storageI, log *slog.Logger) bot.Middleware {
 	}
 }
 
-func UserIsValid(ctx context.Context, log *slog.Logger,
+func UserIsValid(ctx context.Context, log1 *slog.Logger,
 	storage storageI, telegram_id string) (bool, error) {
 	op := "summary.services.ListUsersService"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	users, err := storage.ListUsers(ctx)
 	if err != nil {

@@ -34,13 +34,13 @@ type KofdOperationsResponseData struct {
 }
 
 func KofdGetOperations(cfg *config.Config,
-	log *slog.Logger, knumber string, token string,
+	log1 *slog.Logger, knumber string, token string,
 	firstDate string, lastDate string) (KofdOperationsResponse, error) {
 
 	var response = KofdOperationsResponse{}
 
 	op := "api.KofdGetOperations"
-	log = log.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op))
 
 	base, err := url.Parse(cfg.KOFD_OPERATIONS_URL)
 	if err != nil {

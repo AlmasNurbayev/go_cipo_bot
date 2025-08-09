@@ -102,8 +102,8 @@ func GetPeriodByMode(mode string) (time.Time, time.Time, error) {
 		location := now.Location()
 		start = time.Date(now.Year()-1, time.January, 1, 0, 0, 0, 0, location)
 		end = time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, location).Add(-time.Nanosecond)
-	} else if []rune(parts[1])[0] == '2' {
-		// если второе слово начинается с 2, то распарсиваем как год и месяц
+	} else if []rune(parts[1])[0] == '2' && len(parts[1]+parts[2]) == 6 {
+		// если второе слово начинается с 2 и длина периода 6, то распарсиваем как год и месяц
 		input := strings.Join(parts[1:], " ")
 		t, err := time.Parse("2006 01", input)
 		if err != nil {
