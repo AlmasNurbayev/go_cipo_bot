@@ -86,7 +86,7 @@ func summaryInlineKb(data1 time.Time, data2 time.Time) *models.InlineKeyboardMar
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
 				{Text: "🔍 Все чеки", CallbackData: "summary_allChecks_" + start + "_" + end},
-				{Text: "Аналитика", CallbackData: "summary_groups_" + start + "_" + end},
+				{Text: "Аналитика", CallbackData: "summary_analytics_" + start + "_" + end},
 				{Text: "Диаграмма по дням", CallbackData: "summary_chartsDay_" + start + "_" + end},
 			},
 		},
@@ -128,11 +128,20 @@ func summaryCallbackHandler(storage storageI,
 			})
 		}
 
-		if strings.Contains(cb.Data, "summary_groups_") {
+		if strings.Contains(cb.Data, "summary_analytics_") {
+			response, markups, err := getAnalytics(cb.Data, storage, log, cfg)
+			if err != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+				b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: cb.Message.Message.Chat.ID,
+					Text:   "Ошибка получения данных",
+				})
+			}
 			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:    cb.Message.Message.Chat.ID,
-				Text:      "<b>" + cb.Data + "</b> \n",
-				ParseMode: models.ParseModeHTML,
+				ChatID:      cb.Message.Message.Chat.ID,
+				Text:        response,
+				ParseMode:   models.ParseModeHTML,
+				ReplyMarkup: markups,
 			})
 		}
 		//if cb.Data == "summary_Day" {
