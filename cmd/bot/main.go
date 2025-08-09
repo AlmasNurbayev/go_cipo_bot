@@ -46,11 +46,11 @@ func main() {
 		panic(err)
 	}
 
-	kafka, err := botP.NewKafkaReader(ctx, cfg, Log, botApp.Bot, botApp.Storage)
-	if err != nil {
-		Log.Error("error create kafka app", slog.String("err", err.Error()))
-		panic(err)
-	}
+	// kafka, err := botP.NewKafkaReader(ctx, cfg, Log, botApp.Bot, botApp.Storage)
+	// if err != nil {
+	// 	Log.Error("error create kafka app", slog.String("err", err.Error()))
+	// 	panic(err)
+	// }
 
 	go func() {
 		botApp.Run()
@@ -58,9 +58,9 @@ func main() {
 	go func() {
 		httpApp.Run()
 	}()
-	go func() {
-		kafka.Run()
-	}()
+	// go func() {
+	// 	kafka.Run()
+	// }()
 
 	//done := make(chan os.Signal, 1)
 	//signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)

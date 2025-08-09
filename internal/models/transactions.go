@@ -25,6 +25,7 @@ type TransactionEntity struct {
 	Created_at          time.Time      `json:"created_at" db:"created_at"`
 	Organization_id     int64          `json:"organization_id" db:"organization_id"`
 	Kassa_id            int64          `json:"kassa_id" db:"kassa_id"`
+	Kassa_name          null.String    `json:"kassa_name" db:"kassa_name"`
 	Knumber             null.String    `json:"knumber" db:"knumber"`
 	Cheque              null.String    `json:"cheque" db:"cheque"`
 	Images              *[]string      `json:"images" db:"images"`
@@ -34,6 +35,9 @@ type TransactionEntity struct {
 
 type ChequeJSONElement struct {
 	Name          string      `json:"name" db:"name"`
+	Season        null.String `json:"season" db:"season"`
+	VidModeli     null.String `json:"vid_modeli" db:"vid_modeli"`
+	MainImageURL  null.String `json:"main_image_url" db:"main_image_url"`
 	Size          null.String `json:"size" db:"size"`
 	NominalPrice  float64     `json:"nominal_price" db:"nominal_price"`
 	DiscountPrice float64     `json:"discount_price" db:"discount_price"`

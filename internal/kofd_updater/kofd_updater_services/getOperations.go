@@ -84,6 +84,7 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 				Shift:               null.IntFrom(int64(item.Shift)),
 				Organization_id:     kassa.Organization_id,
 				Kassa_id:            kassa.Id,
+				Kassa_name:          null.StringFrom(kassa.Name_kassa),
 				Knumber:             kassa.Knumber,
 			})
 		}
@@ -121,6 +122,29 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 				}
 				chequeString := sb.String()
 				names, err := utils.GetGoodsFromCheque(chequeString)
+
+				// перебираем товары из чека и запрашиваем дополнительную информацию от Cipo
+				for nameIndex, name := range names {
+					var productData api.ProductByIdResponse
+					productData, err := api.CipoGetProduct(cfg, log, name.Name, token)
+					if err != nil {
+						log.Error("error on get product from Cipo backend: ", slog.String("err", err.Error()),
+							slog.String("name", name.Name))
+					}
+					log.Info("get product from Cipo", slog.String("name", name.Name))
+					names[nameIndex].Season = null.StringFrom(productData.Product_group.Name_1c)
+					names[nameIndex].VidModeli = null.StringFrom(productData.Vid_modeli.Name_1c)
+					// ищем активную основную картинку
+					if len(productData.Image_registry) > 1 {
+						findIndex := slices.IndexFunc(productData.Image_registry, func(image api.ImageRegistryResponse) bool { return image.Active && image.Main })
+						if findIndex != -1 {
+							names[nameIndex].MainImageURL = null.StringFrom(cfg.CIPO_IMAGES_URL + "/" + productData.Image_registry[findIndex].Full_name)
+						}
+					} else if len(productData.Image_registry) == 1 {
+						names[nameIndex].MainImageURL = null.StringFrom(cfg.CIPO_IMAGES_URL + "/" + productData.Image_registry[0].Full_name)
+					}
+				}
+
 				if err != nil && listEntity[idx].Type_operation == 1 {
 					// если продажа/возврат и не удалось получить товары из чека
 					log.Error("error on get goods from cheque: ", slog.String("err", err.Error()))

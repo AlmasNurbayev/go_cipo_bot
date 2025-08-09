@@ -39,7 +39,7 @@ func KofdGetOperations(cfg *config.Config,
 
 	var response = KofdOperationsResponse{}
 
-	op := "kofd.KofdGetOperations"
+	op := "api.KofdGetOperations"
 	log = log.With(slog.String("op", op))
 
 	base, err := url.Parse(cfg.KOFD_OPERATIONS_URL)

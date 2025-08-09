@@ -127,10 +127,10 @@ func main() {
 		storage.Close()
 		return
 	}
-	err = kofd_updater_services.SendToKafka(cfg, Log, messages)
-	if err != nil {
-		Log.Error("Error kafka send:", slog.String("err", err.Error()))
-	}
+	// err = kofd_updater_services.SendToKafka(cfg, Log, messages)
+	// if err != nil {
+	// 	Log.Error("Error kafka send:", slog.String("err", err.Error()))
+	// }
 
 	err = pgxTransaction.Commit(ctx)
 	if err != nil {

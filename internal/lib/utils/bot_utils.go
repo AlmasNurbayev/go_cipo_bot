@@ -8,8 +8,10 @@ import (
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
-func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []modelsI.TransactionEntity) modelsI.TypeTransactionsTotal {
+func ConvertTransToTotal(result modelsI.TypeTransactionsTotal,
+	transactions []modelsI.TransactionEntity) modelsI.TypeTransactionsTotal {
 	//SumSales := 0.0
+
 	SumSalesCash := 0.0
 	SumSalesCard := 0.0
 	SumSalesOther := 0.0
@@ -33,12 +35,12 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 	for _, transaction := range transactions {
 		if transaction.Type_operation == 6 { // выемка или внесение
 			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 0 { // внесение
-					SumInputCash += transaction.Sum_operation.Float64
-			}	
+				SumInputCash += transaction.Sum_operation.Float64
+			}
 			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 1 { // выемка
-					SumOutputCash += transaction.Sum_operation.Float64
-			}	
-		}	
+				SumOutputCash += transaction.Sum_operation.Float64
+			}
+		}
 		if transaction.Type_operation == 1 { // продажа или возврат
 			if transaction.Subtype.Valid && transaction.Subtype.Int64 == 2 { // продажа
 				if transaction.Sum_operation.Valid {
@@ -82,7 +84,8 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 					}
 				}
 			}
-		
+
+		}
 	}
 	result.SumSales = SumSalesCash + SumSalesCard + SumSalesOther + SumSalesMixed
 	result.SumSalesCash = SumSalesCash
@@ -101,8 +104,7 @@ func ConvertTransToTotal(result modelsI.TypeTransactionsTotal, transactions []mo
 	result.Sum = result.SumCash + result.SumCard + result.SumOther + result.SumMixed
 	result.Count = count
 	result.SumInputCash = SumInputCash
-	result.SumOutputCash = SumOutputCash 
-
+	result.SumOutputCash = SumOutputCash
 	return result
 }
 
@@ -150,7 +152,6 @@ func GetTypeOperationText(oper modelsI.TransactionEntity) string {
 		switch oper.Subtype.Int64 {
 		case 0:
 			return "Внесение"
-		}
 		case 1:
 			return "Выемка"
 		}

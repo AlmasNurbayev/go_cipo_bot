@@ -37,7 +37,7 @@ func KofdGetToken(sendBody KofdAuthenticateRequest, cfg *config.Config,
 
 	var response = KofdAuthenticateResponse{}
 
-	op := "kofd.KofdGetToken"
+	op := "api.KofdGetToken"
 	log = log.With(slog.String("op", op))
 
 	base, err := url.Parse(cfg.KOFD_PASSAUTH_URL)

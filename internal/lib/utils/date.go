@@ -1,14 +1,43 @@
 package utils
 
 import (
+	"errors"
 	"strings"
 	"time"
 )
 
-func GetDateByMode(mode string) (time.Time, time.Time) {
-	parts := strings.Split(mode, " ")
+// получаем границы периода из текста формата "2025-01-01_2025-01-31"
+func GetPeriodByString(interval string) (time.Time, time.Time, error) {
+	parts := strings.Split(interval, "_")
+	if len(parts) != 2 {
+		return time.Time{}, time.Time{}, errors.New("неверный формат дат")
+	}
+	var start time.Time
+	var end time.Time
+	start, err := time.Parse("2006-01-02", parts[0])
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	end, err = time.Parse("2006-01-02", parts[1])
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	// начало суток
+	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
+	// конец суток
+	end = time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, int(time.Nanosecond*999999999), end.Location())
+	return start, end, nil
+}
 
-	start, end := time.Now(), time.Now()
+// получаем границы периода из текста формата "итог тек. день"
+func GetPeriodByMode(mode string) (time.Time, time.Time, error) {
+	parts := strings.Split(mode, " ")
+	if len(parts) < 3 {
+		return time.Time{}, time.Time{}, errors.New("неверный формат дат")
+	}
+
+	var start time.Time
+	var end time.Time
 
 	if parts[1] == "тек." && parts[2] == "день" {
 		now := time.Now()
@@ -73,7 +102,18 @@ func GetDateByMode(mode string) (time.Time, time.Time) {
 		location := now.Location()
 		start = time.Date(now.Year()-1, time.January, 1, 0, 0, 0, 0, location)
 		end = time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, location).Add(-time.Nanosecond)
+	} else if []rune(parts[1])[0] == '2' {
+		// если второе слово начинается с 2, то распарсиваем как год и месяц
+		input := strings.Join(parts[1:], " ")
+		t, err := time.Parse("2006 01", input)
+		if err != nil {
+			panic(err)
+		}
+		start = time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC)
+		end = start.AddDate(0, 1, 0).Add(-time.Nanosecond)
 
+	} else {
+		return time.Time{}, time.Time{}, errors.New("неизвестный формат даты")
 	}
-	return start, end
+	return start, end, nil
 }

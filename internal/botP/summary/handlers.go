@@ -2,24 +2,18 @@ package summary
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
-	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
-
-	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
-
-type storageI interface {
-	ListTransactionsByDate(context.Context, time.Time, time.Time) ([]modelsI.TransactionEntity, error)
-}
 
 func summaryHandler(storage storageI,
 	log *slog.Logger, cfg *config.Config) bot.HandlerFunc {
@@ -38,12 +32,20 @@ func summaryHandler(storage storageI,
 			log.Warn("summary called not 3 words: " + msg.Text)
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   "запрос итоги должен быть в формате: 'итоги тек. день' или 'итоги пр. день' и т.д.",
+				Text:   "запрос итоги должен быть в формате: 'итоги тек. день' или 'итоги пр. день' и т.д. или 'итоги 2024 08'",
 			})
 			return
 		}
 
-		data, err := dateHandler(msg.Text, b, storage, log, cfg)
+		if msg.Text == "итоги произ. месяц" {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "отправьте сообщение в формате 'итоги год месяц', например 2024 08",
+			})
+			return
+		}
+
+		data, err := getSummaryDate(msg.Text, storage, log)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			b.SendMessage(ctx, &bot.SendMessageParams{
@@ -52,66 +54,44 @@ func summaryHandler(storage storageI,
 			})
 		}
 		p := message.NewPrinter(language.Russian)
+		text := "<b>" + data.DateMode +
+			" (" + data.StartDate.Format("02.01.2006") + " - " + data.EndDate.Format("02.01.2006") + ")</b> \n" +
+			"количество чеков: " + strconv.Itoa(data.Count) + "\n" +
+			"<b>чистая сумма продаж: " + p.Sprintf("%.0f", data.Sum) + "</b> \n" +
+			"сумма продаж: " + p.Sprintf("%.0f", data.SumSales) + "\n" +
+			" в т.ч. кеш: " + p.Sprintf("%.0f", data.SumSalesCash) + "\n" +
+			"        карта: " + p.Sprintf("%.0f", data.SumSalesCard) + "\n" +
+			"        смешанно: " + p.Sprintf("%.0f", data.SumSalesMixed) + "\n" +
+			"        прочее: " + p.Sprintf("%.0f", data.SumSalesOther) + "\n" +
+			"сумма возвратов: " + p.Sprintf("%.0f", data.SumReturns) + "\n" +
+			"\n" +
+			"Выемки: " + p.Sprintf("%.0f", data.SumOutputCash) + "\n" +
+			"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n"
 		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text: "<b>" + data.DateMode +
-				" (" + data.StartDate.Format("02.01.2006") + " - " + data.EndDate.Format("02.01.2006") + ")</b> \n" +
-				"количество чеков: " + strconv.Itoa(data.Count) + "\n" +
-				"<b>чистая сумма продаж: " + p.Sprintf("%.0f", data.Sum) + "</b> \n" +
-				"сумма продаж: " + p.Sprintf("%.0f", data.SumSales) + "\n" +
-				" в т.ч. кеш: " + p.Sprintf("%.0f", data.SumSalesCash) + "\n" +
-				"        карта: " + p.Sprintf("%.0f", data.SumSalesCard) + "\n" +
-				"        смешанно: " + p.Sprintf("%.0f", data.SumSalesMixed) + "\n" +
-				"        прочее: " + p.Sprintf("%.0f", data.SumSalesOther) + "\n" +
-				"сумма возвратов: " + p.Sprintf("%.0f", data.SumReturns) + "\n" +
-				"\n" +
-				"Выемки: " + p.Sprintf("%.0f", data.SumOutputCash) + "\n" +
-				"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n",
+			ChatID:      update.Message.Chat.ID,
+			Text:        text,
 			ParseMode:   models.ParseModeHTML,
-			ReplyMarkup: checkInlineKb(msg.Text, data),
+			ReplyMarkup: summaryInlineKb(data.StartDate, data.EndDate),
 		})
 	}
 }
 
-func dateHandler(mode string, b *bot.Bot, storage storageI,
-	log *slog.Logger, cfg *config.Config) (modelsI.TypeTransactionsTotal, error) {
+func summaryInlineKb(data1 time.Time, data2 time.Time) *models.InlineKeyboardMarkup {
+	//if strings.Contains(text, "день") || strings.Contains(text, "неделя") {
+	start := data1.Format("2006-01-02")
+	end := data2.Format("2006-01-02")
+	fmt.Println(start, end)
 
-	op := "summary.dateHandler"
-	log = log.With(slog.String("op", op))
-
-	// Получаем границы текущего дня в локальном времени
-	start, end := utils.GetDateByMode(mode)
-
-	var result = modelsI.TypeTransactionsTotal{
-		StartDate: start,
-		EndDate:   end,
-		DateMode:  mode,
-	}
-
-	data, err := storage.ListTransactionsByDate(context.Background(), start, end)
-	if err != nil {
-		log.Error("error: ", slog.String("err", err.Error()))
-		return result, err
-	}
-	log.Info("transactions count", slog.Int("count", len(data)))
-
-	result = utils.ConvertTransToTotal(result, data)
-
-	return result, nil
-}
-
-func checkInlineKb(text string, data modelsI.TypeTransactionsTotal) *models.InlineKeyboardMarkup {
-	if strings.Contains(text, "день") || strings.Contains(text, "неделя") {
-		start := data.StartDate.Format("2006-01-02")
-		end := data.EndDate.Format("2006-01-02")
-		return &models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{
-					{Text: "🔍 Все чеки", CallbackData: "summary_allChecks_" + start + "_" + end},
-				},
+	return &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "🔍 Все чеки", CallbackData: "summary_allChecks_" + start + "_" + end},
+				{Text: "Аналитика", CallbackData: "summary_groups_" + start + "_" + end},
+				{Text: "Диаграмма по дням", CallbackData: "summary_chartsDay_" + start + "_" + end},
 			},
-		}
+		},
 	}
+	//}
 	return nil
 }
 
@@ -126,11 +106,29 @@ func summaryCallbackHandler(storage storageI,
 		}
 		cb := update.CallbackQuery
 		log.Info("summary called callback", slog.String("data", cb.Data))
-		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-			CallbackQueryID: update.CallbackQuery.ID,
-			ShowAlert:       false,
-		})
+		// b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		// 	CallbackQueryID: update.CallbackQuery.ID,
+		// 	ShowAlert:       false,
+		// })
+
 		if strings.Contains(cb.Data, "summary_allChecks_") {
+			response, markups, err := getAllChecks(cb.Data, b, storage, log, cfg)
+			if err != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+				b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: cb.Message.Message.Chat.ID,
+					Text:   "Ошибка получения данных",
+				})
+			}
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID:      cb.Message.Message.Chat.ID,
+				Text:        response,
+				ParseMode:   models.ParseModeHTML,
+				ReplyMarkup: markups,
+			})
+		}
+
+		if strings.Contains(cb.Data, "summary_groups_") {
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:    cb.Message.Message.Chat.ID,
 				Text:      "<b>" + cb.Data + "</b> \n",

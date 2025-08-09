@@ -26,7 +26,7 @@ func KofdGetCheck(cfg *config.Config,
 
 	var response = KofdCheckResponseData{}
 
-	op := "kofd.KofdGetOperations"
+	op := "api.KofdGetCheck"
 	log = log.With(slog.String("op", op))
 
 	base, err := url.Parse(cfg.KOFD_OPERATIONS_URL + "/operation")
