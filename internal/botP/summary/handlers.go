@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"golang.org/x/text/language"
@@ -59,6 +60,7 @@ func summaryHandler(storage storageI,
 			"количество чеков: " + strconv.Itoa(data.Count) + "\n" +
 			"<b>чистая сумма продаж: " + p.Sprintf("%.0f", data.Sum) + "</b> \n" +
 			"сумма продаж: " + p.Sprintf("%.0f", data.SumSales) + "\n" +
+			"сумма возвратов: " + p.Sprintf("%.0f", data.SumReturns) + "\n" +
 			" в т.ч. кеш: " + p.Sprintf("%.0f", data.SumSalesCash) + "\n" +
 			"        карта: " + p.Sprintf("%.0f", data.SumSalesCard) + "\n" +
 			"        смешанно: " + p.Sprintf("%.0f", data.SumSalesMixed) + "\n" +
@@ -127,6 +129,10 @@ func summaryCallbackHandler(storage storageI,
 		}
 
 		if strings.Contains(cb.Data, "summary_analytics_") {
+			err := utils.SendAction(cb.Message.Message.Chat.ID, "typing", b)
+			if err != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+			}
 			response, markups, err := getAnalytics(cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
@@ -161,7 +167,11 @@ func summaryGetCheckHandler(storage storageI,
 			CallbackQueryID: update.CallbackQuery.ID,
 			ShowAlert:       false,
 		})
-		response, markups, err := getOneCheck(cb.Data, storage, log, cfg)
+		err := utils.SendAction(cb.Message.Message.Chat.ID, "upload_photo", b)
+		if err != nil {
+			log.Error("error: ", slog.String("err", err.Error()))
+		}
+		inputMedia, stringResponce, err := getOneCheck(cb.Data, storage, log, cfg)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			b.SendMessage(ctx, &bot.SendMessageParams{
@@ -170,11 +180,18 @@ func summaryGetCheckHandler(storage storageI,
 			})
 		}
 
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID:      cb.Message.Message.Chat.ID,
-			Text:        response,
-			ParseMode:   models.ParseModeHTML,
-			ReplyMarkup: markups,
-		})
+		// Если есть текстовое сообщение, то отправляем его, иначе отправляем в виде фото
+		if stringResponce != "" {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID:    cb.Message.Message.Chat.ID,
+				Text:      stringResponce,
+				ParseMode: models.ParseModeHTML,
+			})
+		} else {
+			b.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
+				ChatID: cb.Message.Message.Chat.ID,
+				Media:  *inputMedia,
+			})
+		}
 	}
 }

@@ -2,6 +2,8 @@ package summary
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"sort"
 	"strconv"
@@ -81,9 +83,14 @@ func getAllChecks(mode string, storage storageI,
 
 	for index, cheque := range data {
 
-		sb.WriteString("<b>")
+		typeOperation := utils.GetTypeOperationText(cheque)
+		if typeOperation == "Возврат" {
+			typeOperation = "⚠️Возврат"
+		}
+
+		sb.WriteString("<b>" + strconv.Itoa(index+1) + ". ")
 		sb.WriteString(cheque.Kassa_name.String + " - " + strings.TrimSpace(cheque.Operationdate.Time.Format("15:04")) +
-			" - " + utils.FormatNumber(cheque.Sum_operation.Float64) + " ₸")
+			" - " + typeOperation + " " + utils.FormatNumber(cheque.Sum_operation.Float64) + " ₸")
 		sb.WriteString("\n")
 		sb.WriteString("</b>")
 		if cheque.ChequeJSON != nil {
@@ -97,6 +104,10 @@ func getAllChecks(mode string, storage storageI,
 			CallbackData: "getCheck_" + strconv.Itoa(int(cheque.Id)),
 		},
 		)
+		if len(keyboardButtons) == 8 {
+			inlineKeyboard = append(inlineKeyboard, keyboardButtons)
+			keyboardButtons = []models.InlineKeyboardButton{}
+		}
 	}
 
 	if len([]rune(sb.String())) > 4096 {
@@ -157,13 +168,29 @@ func getAnalytics(mode string, storage storageI,
 		if item.Type_operation != 1 {
 			continue
 		}
-		totalOperationsSum += item.Sum_operation.Float64
+
+		// получаем сумму чеков
+		if item.Subtype.Int64 == 3 {
+			totalOperationsSum -= item.Sum_operation.Float64
+		} else {
+			totalOperationsSum += item.Sum_operation.Float64
+		}
+
+		// разбиваем по именам из JSON
 		for _, cheque := range item.ChequeJSON {
-			totalSum += cheque.Sum
+			if item.Subtype.Int64 == 3 {
+				// Возврат, минусом
+				totalSum -= cheque.Sum
+				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Sum: -cheque.Sum})
+				days = append(days, modelsI.Simple{Item: item.Operationdate.Time.Format("02.01.2006"), Sum: -cheque.Sum})
+				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Sum: -cheque.Sum})
+			} else {
+				totalSum += cheque.Sum
+				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Sum: cheque.Sum})
+				days = append(days, modelsI.Simple{Item: item.Operationdate.Time.Format("02.01.2006"), Sum: cheque.Sum})
+				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Sum: cheque.Sum})
+			}
 			totalDiscount += (cheque.NominalPrice - cheque.DiscountPrice) * float64(cheque.Qnt)
-			seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Sum: cheque.Sum})
-			days = append(days, modelsI.Simple{Item: item.Operationdate.Time.Format("02.01.2006"), Sum: cheque.Sum})
-			vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Sum: cheque.Sum})
 		}
 	}
 
@@ -202,23 +229,23 @@ func getAnalytics(mode string, storage storageI,
 }
 
 func getOneCheck(queryString string, storage storageI,
-	log1 *slog.Logger, cfg *config.Config) (string, models.InlineKeyboardMarkup, error) {
+	log1 *slog.Logger, cfg *config.Config) (*[]models.InputMedia, string, error) {
 
 	op := "summary.getOneCheck"
 	log := log1.With(slog.String("op", op))
 
-	var markups models.InlineKeyboardMarkup
+	var modelsToSend []models.InputMediaPhoto
 	//var inlineKeyboard [][]models.InlineKeyboardButton
 	var checkID int64
 
 	queryArr := strings.Split(queryString, "_")
 	if len(queryArr) < 2 {
-		return "неверный формат запроса чека", markups, nil
+		return nil, "", errors.New("неверный формат запроса чека, должен быть в формате: getCheck_1234567890")
 	}
 	checkID, err := strconv.ParseInt(queryArr[1], 10, 64)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
-		return "", markups, err
+		return nil, "", err
 	}
 
 	log.Info("queryString", slog.String("queryString", queryString))
@@ -226,37 +253,58 @@ func getOneCheck(queryString string, storage storageI,
 	data, err := storage.GetTransactionById(context.Background(), checkID)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
-		return "", markups, err
+		return nil, "", err
+	}
+	typeOperation := utils.GetTypeOperationText(data)
+	if typeOperation == "Возврат" {
+		typeOperation = "⚠️Возврат"
 	}
 
 	var sb strings.Builder
 	sb.WriteString("<b>чек №" + strconv.FormatInt(data.Id, 10) + " от " + data.Operationdate.Time.Format("2006.01.02 15:04") + "</b>\n")
 	sb.WriteString("касса: " + data.Kassa_name.String + "\n")
-	sb.WriteString("тип операции: " + utils.GetTypeOperationText(data) + ", сумма чека: " + utils.FormatNumber(data.Sum_operation.Float64) + "\n")
-	sb.WriteString("товары: ")
-	for _, item := range data.ChequeJSON {
-		sb.WriteString("\n • " + item.Name + " (" + item.Size.String + ") ₸ " + utils.FormatNumber(item.Sum))
-		if item.VidModeli.String != "" && item.Season.String != "" {
-			sb.WriteString(" (" + item.VidModeli.String + ", " + item.Season.String + ")")
-		}
-		if item.NominalPrice-item.DiscountPrice != 0 {
-			sb.WriteString(" - скидка " + utils.FormatNumber(item.NominalPrice-item.DiscountPrice) + " ₸")
-		}
-		if item.Qnt > 1 {
-			sb.WriteString(" x" + strconv.Itoa(int(item.Qnt)))
+	sb.WriteString("тип операции: " + typeOperation + ", сумма: " + utils.FormatNumber(data.Sum_operation.Float64) + "\n")
+
+	if len(data.ChequeJSON) > 0 {
+		sb.WriteString("товары: ")
+		for _, item := range data.ChequeJSON {
+			sb.WriteString("\n • " + item.Name + " (" + item.Size.String + ") ₸ " + utils.FormatNumber(item.Sum))
+			if item.VidModeli.String != "" && item.Season.String != "" {
+				sb.WriteString(" (" + item.VidModeli.String + ", " + item.Season.String + ")")
+			}
+			if item.NominalPrice-item.DiscountPrice != 0 {
+				sb.WriteString(" - скидка " + utils.FormatNumber(item.NominalPrice-item.DiscountPrice) + " ₸")
+			}
+			if item.Qnt > 1 {
+				sb.WriteString(" x" + strconv.Itoa(int(item.Qnt)))
+			}
+			if item.MainImageURL.String != "" {
+				modelsToSend = append(modelsToSend, models.InputMediaPhoto{
+					Media: item.MainImageURL.String,
+				})
+			}
 		}
 	}
 
-	if len([]rune(sb.String())) > 4096 {
-		return "сообщение слишком большое, сократите период",
-			models.InlineKeyboardMarkup{
-				InlineKeyboard: [][]models.InlineKeyboardButton{},
-			}, err
+	if len(modelsToSend) > 0 {
+		modelsToSend[0].Caption = sb.String()
+		modelsToSend[0].ParseMode = models.ParseModeHTML
 	}
 
-	markups = models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{},
+	if len([]rune(sb.String())) > 1096 {
+		return nil, "", errors.New("сообщение слишком большое, сократите период")
 	}
 
-	return sb.String(), markups, nil
+	var inputMedia []models.InputMedia
+	for _, media := range modelsToSend {
+		inputMedia = append(inputMedia, &media)
+	}
+
+	// Если есть фото, то отправляем их, иначе просто текст
+	if len(inputMedia) == 0 {
+		fmt.Println(sb.String())
+		return nil, sb.String(), nil
+	} else {
+		return &inputMedia, "", nil
+	}
 }

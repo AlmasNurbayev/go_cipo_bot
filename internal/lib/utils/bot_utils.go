@@ -1,11 +1,16 @@
 package utils
 
 import (
+	"context"
+	"errors"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 )
 
 func ConvertTransToTotal(result modelsI.TypeTransactionsTotal,
@@ -159,4 +164,38 @@ func GetTypeOperationText(oper modelsI.TransactionEntity) string {
 		return "Неизвестно"
 	}
 	return "Неизвестно"
+}
+
+func SendAction(chatID int64, action string, b *bot.Bot) error {
+	// Отправляем действие, чтобы не было "пустого" сообщения
+	var typeAction models.ChatAction
+	switch action {
+	case "typing":
+		{
+			typeAction = models.ChatActionTyping
+		}
+	case "upload_photo":
+		{
+			typeAction = models.ChatActionUploadPhoto
+		}
+	case "upload_document":
+		{
+			typeAction = models.ChatActionUploadDocument
+		}
+	default:
+		{
+			return errors.New("неизвестное действие: " + action)
+		}
+
+	}
+	_, err := b.SendChatAction(context.Background(), &bot.SendChatActionParams{
+		ChatID: chatID,
+		Action: typeAction,
+	})
+	if err != nil {
+		return err
+	}
+	// Задержка чтобы статус был виден
+	time.Sleep(500 * time.Millisecond)
+	return nil
 }
