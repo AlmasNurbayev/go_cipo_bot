@@ -11,12 +11,12 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
-	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
 type storageI interface {
 	ListTransactionsByDate(context.Context, time.Time, time.Time) ([]modelsI.TransactionEntity, error)
+	GetTransactionById(context.Context, int64) (modelsI.TransactionEntity, error)
 }
 
 func getSummaryDate(mode string, storage storageI,
@@ -50,7 +50,7 @@ func getSummaryDate(mode string, storage storageI,
 	return result, err
 }
 
-func getAllChecks(mode string, b *bot.Bot, storage storageI,
+func getAllChecks(mode string, storage storageI,
 	log1 *slog.Logger, cfg *config.Config) (string, models.InlineKeyboardMarkup, error) {
 
 	op := "summary.getAllChecks"
@@ -196,6 +196,66 @@ func getAnalytics(mode string, storage storageI,
 
 	if len([]rune(sb.String())) > 4096 {
 		return "сообщение слишком большое, сократите период", markups, err
+	}
+
+	return sb.String(), markups, nil
+}
+
+func getOneCheck(queryString string, storage storageI,
+	log1 *slog.Logger, cfg *config.Config) (string, models.InlineKeyboardMarkup, error) {
+
+	op := "summary.getOneCheck"
+	log := log1.With(slog.String("op", op))
+
+	var markups models.InlineKeyboardMarkup
+	//var inlineKeyboard [][]models.InlineKeyboardButton
+	var checkID int64
+
+	queryArr := strings.Split(queryString, "_")
+	if len(queryArr) < 2 {
+		return "неверный формат запроса чека", markups, nil
+	}
+	checkID, err := strconv.ParseInt(queryArr[1], 10, 64)
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return "", markups, err
+	}
+
+	log.Info("queryString", slog.String("queryString", queryString))
+
+	data, err := storage.GetTransactionById(context.Background(), checkID)
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return "", markups, err
+	}
+
+	var sb strings.Builder
+	sb.WriteString("<b>чек №" + strconv.FormatInt(data.Id, 10) + " от " + data.Operationdate.Time.Format("2006.01.02 15:04") + "</b>\n")
+	sb.WriteString("касса: " + data.Kassa_name.String + "\n")
+	sb.WriteString("тип операции: " + utils.GetTypeOperationText(data) + ", сумма чека: " + utils.FormatNumber(data.Sum_operation.Float64) + "\n")
+	sb.WriteString("товары: ")
+	for _, item := range data.ChequeJSON {
+		sb.WriteString("\n • " + item.Name + " (" + item.Size.String + ") ₸ " + utils.FormatNumber(item.Sum))
+		if item.VidModeli.String != "" && item.Season.String != "" {
+			sb.WriteString(" (" + item.VidModeli.String + ", " + item.Season.String + ")")
+		}
+		if item.NominalPrice-item.DiscountPrice != 0 {
+			sb.WriteString(" - скидка " + utils.FormatNumber(item.NominalPrice-item.DiscountPrice) + " ₸")
+		}
+		if item.Qnt > 1 {
+			sb.WriteString(" x" + strconv.Itoa(int(item.Qnt)))
+		}
+	}
+
+	if len([]rune(sb.String())) > 4096 {
+		return "сообщение слишком большое, сократите период",
+			models.InlineKeyboardMarkup{
+				InlineKeyboard: [][]models.InlineKeyboardButton{},
+			}, err
+	}
+
+	markups = models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{},
 	}
 
 	return sb.String(), markups, nil

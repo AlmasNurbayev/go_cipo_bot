@@ -61,7 +61,7 @@ func (s *Storage) ListTransactionsByDate(ctx context.Context,
 	var transactions []models.TransactionEntity
 
 	query := `SELECT * FROM transactions
-	WHERE operationdate >= $1 AND operationdate < $2;`
+	WHERE operationdate >= $1 AND operationdate < $2 order by id;`
 
 	db := s.Db
 	err := pgxscan.Select(ctx, db, &transactions, query, start, end)
@@ -128,4 +128,26 @@ func (s *Storage) GetLastTransactions(ctx context.Context, afterDate time.Time) 
 	}
 
 	return transactions, nil
+}
+
+func (s *Storage) GetTransactionById(ctx context.Context, id int64) (models.TransactionEntity, error) {
+
+	op := "storage.GetTransactionById"
+	log := s.log.With(slog.String("op", op))
+	var transaction models.TransactionEntity
+
+	query := `SELECT * FROM transactions
+	WHERE id = $1;`
+	db := s.Db
+	err := pgxscan.Get(ctx, db, &transaction, query, id)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// если выкидывается ошибка нет строк, возвращаем пустой массив
+			return transaction, nil
+		}
+		log.Error("error: ", slog.String("err", err.Error()))
+		return transaction, err
+	}
+	return transaction, nil
 }

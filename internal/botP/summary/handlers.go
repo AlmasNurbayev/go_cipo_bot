@@ -110,7 +110,7 @@ func summaryCallbackHandler(storage storageI,
 		})
 
 		if strings.Contains(cb.Data, "summary_allChecks_") {
-			response, markups, err := getAllChecks(cb.Data, b, storage, log, cfg)
+			response, markups, err := getAllChecks(cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				b.SendMessage(ctx, &bot.SendMessageParams{
@@ -161,13 +161,20 @@ func summaryGetCheckHandler(storage storageI,
 			CallbackQueryID: update.CallbackQuery.ID,
 			ShowAlert:       false,
 		})
+		response, markups, err := getOneCheck(cb.Data, storage, log, cfg)
+		if err != nil {
+			log.Error("error: ", slog.String("err", err.Error()))
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: cb.Message.Message.Chat.ID,
+				Text:   "Ошибка получения данных",
+			})
+		}
 
-		log.Info("called callback", slog.String("data", cb.Data))
 		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID:    cb.Message.Message.Chat.ID,
-			Text:      "cheque",
-			ParseMode: models.ParseModeHTML,
-			//ReplyMarkup: markups,
+			ChatID:      cb.Message.Message.Chat.ID,
+			Text:        response,
+			ParseMode:   models.ParseModeHTML,
+			ReplyMarkup: markups,
 		})
 	}
 }
