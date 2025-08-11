@@ -10,6 +10,10 @@ bot:
 updater:
 	go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2025-07-01" -lastDate "2025-07-26" -bin "800727301256" 
 
+updater2023-01:
+	go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2023-01-01" -lastDate "2023-01-31" -bin "800727301256"
+
+
 updater30:
 	go run cmd/kofd_updater/main.go -configEnv "./.env" -days 10 -bin "800727301256" 
 

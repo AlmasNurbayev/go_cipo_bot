@@ -41,7 +41,7 @@ func summaryHandler(storage storageI,
 		if msg.Text == "итоги произ. месяц" {
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   "отправьте сообщение в формате 'итоги год месяц', например 2024 08",
+				Text:   "отправьте сообщение в формате 'итоги год месяц', например 'итоги 2024 08'",
 			})
 			return
 		}
