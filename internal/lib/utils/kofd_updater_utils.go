@@ -96,7 +96,7 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 	}
 
 	//fmt.Printf("%+v\n", names)
-	fmt.Println("ИТОГО: ", totalSum)
+	//fmt.Println("ИТОГО: ", totalSum)
 
 	return names, nil
 }

@@ -92,10 +92,14 @@ func getAllChecks(mode string, storage storageI,
 		if typeOperation == "Возврат" {
 			typeOperation = "⚠️Возврат"
 		}
+		typePayment := utils.GetTypePaymentText(cheque)
+		if typePayment == "Неизвестно" {
+			typePayment = ""
+		}
 
 		sb.WriteString("<b>" + strconv.Itoa(index+1) + ". ")
 		sb.WriteString(cheque.Kassa_name.String + " - " + strings.TrimSpace(cheque.Operationdate.Time.Format("15:04")) +
-			" - " + typeOperation + " " + utils.FormatNumber(cheque.Sum_operation.Float64) + " ₸")
+			" - " + typeOperation + " " + typePayment + " " + utils.FormatNumber(cheque.Sum_operation.Float64) + " ₸")
 		sb.WriteString("\n")
 		sb.WriteString("</b>")
 		if cheque.ChequeJSON != nil {
@@ -264,11 +268,15 @@ func getOneCheck(queryString string, storage storageI,
 	if typeOperation == "Возврат" {
 		typeOperation = "⚠️Возврат"
 	}
+	typePayment := utils.GetTypePaymentText(data)
+	if typePayment == "Неизвестно" {
+		typePayment = ""
+	}
 
 	var sb strings.Builder
 	sb.WriteString("<b>чек №" + strconv.FormatInt(data.Id, 10) + " от " + data.Operationdate.Time.Format("2006.01.02 15:04") + "</b>\n")
 	sb.WriteString("касса: " + data.Kassa_name.String + "\n")
-	sb.WriteString("тип операции: " + typeOperation + ", сумма: " + utils.FormatNumber(data.Sum_operation.Float64) + "\n")
+	sb.WriteString("тип операции: " + typeOperation + " " + typePayment + ", сумма: " + utils.FormatNumber(data.Sum_operation.Float64) + "\n")
 
 	if len(data.ChequeJSON) > 0 {
 		sb.WriteString("товары: ")

@@ -2,7 +2,6 @@ package summary
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -100,8 +99,6 @@ func summaryInlineKb(data1 time.Time, data2 time.Time) *models.InlineKeyboardMar
 	//if strings.Contains(text, "день") || strings.Contains(text, "неделя") {
 	start := data1.Format("2006-01-02")
 	end := data2.Format("2006-01-02")
-	fmt.Println(start, end)
-
 	return &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{

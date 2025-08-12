@@ -258,3 +258,25 @@ func SendAction(chatID int64, action string, b *bot.Bot) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
+
+func GetTypePaymentText(oper modelsI.TransactionEntity) string {
+	if oper.Paymenttypes == nil || len(*oper.Paymenttypes) == 0 {
+		return "Неизвестно"
+	}
+
+	switch len(*oper.Paymenttypes) {
+	case 1:
+		switch (*oper.Paymenttypes)[0] {
+		case 0:
+			return "Наличные"
+		case 1:
+			return "Карта"
+		default:
+			return "Неизвестно"
+		}
+	case 2:
+		return "Смешанно"
+	default:
+		return "Неизвестно"
+	}
+}
