@@ -30,6 +30,11 @@ type Config struct {
 	KAFKA_PORT         string `env:"KAFKA_PORT"`
 	KAFKA_SERVICE_NAME string `env:"KAFKA_SERVICE_NAME"`
 
+	NATS_NAME            string `env:"NATS_NAME"`
+	NATS_PORT            string `env:"NATS_PORT"`
+	NATS_MONITORING_PORT string `env:"NATS_MONITORING_PORT"`
+	NATS_STREAM_NAME     string `env:"NATS_STREAM_NAME"`
+
 	CIPO_PRODUCTS_URL string `env:"CIPO_PRODUCTS_URL"`
 	CIPO_IMAGES_URL   string `env:"CIPO_IMAGES_URL"`
 

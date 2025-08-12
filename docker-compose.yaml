@@ -44,20 +44,22 @@ services:
       - ./pg_conf/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./volume_db/:/var/lib/postgresql/data
 
-  nats:
+  cipo_bot_nats:
     image: nats:2.11.7-alpine3.22
-    container_name: nats
+    #container_name: ${NATS_NAME}
     ports:
-      - "4222:4222"   # основной порт для клиентов
-      - "8222:8222"   # HTTP мониторинг
-      # - "6222:6222"   # кластеринг (необязательно)
+      - ${NATS_PORT}:${NATS_PORT} # убрать потом
+      # - ${NATS_MONITORING_PORT}:${NATS_MONITORING_PORT} # HTTP мониторинг
+      # - "6222:6222"   # кластеринг
     command: >
       -js
-      -m 8222
-      --server_name nats-server
+      -m ${NATS_MONITORING_PORT}
+      --server_name ${NATS_NAME}
       --store_dir /data/jetstream
+      --config /etc/nats/nats-server.conf
     volumes:
       - ./volume_nats:/data/jetstream
+      - ./nats_conf/nats-server.conf:/etc/nats/nats-server.conf
 
   # kafka:
   #   image: bitnami/kafka:4.0.0

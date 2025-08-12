@@ -2,7 +2,6 @@ package kofd_updater_services
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -77,12 +76,12 @@ func DetectNewOperations(ctx context.Context, storage storageOperations2,
 				Telegram_id:  user.Telegram_id,
 				Transactions: transactionsForMessage,
 			})
-			fmt.Println("Transactions in messages:", len(transactionsForMessage))
-			// err = storage.SetCursor(ctx, newCursor, user.Id)
-			// if err != nil {
-			// 	log.Error("не удалось установать курсор: ", slog.String("err", err.Error()))
-			// 	return messages, err
-			// }
+			log.Info("Transactions in message:", slog.Int("count", len(transactionsForMessage)))
+			err = storage.SetCursor(ctx, newCursor, user.Id)
+			if err != nil {
+				log.Error("не удалось установать курсор: ", slog.String("err", err.Error()))
+				return messages, err
+			}
 		}
 
 	}
