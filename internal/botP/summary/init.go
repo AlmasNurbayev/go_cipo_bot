@@ -45,7 +45,7 @@ func initKeyboard(ctx context.Context, b *bot.Bot, update *models.Update) {
 				{Text: "итоги пр. год"},
 			},
 			{
-				{Text: "итоги произ. месяц"},
+				{Text: "итоги произ. дата"},
 			},
 		},
 		ResizeKeyboard:  true,
