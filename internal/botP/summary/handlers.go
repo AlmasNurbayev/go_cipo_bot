@@ -37,10 +37,11 @@ func summaryHandler(storage storageI,
 			return
 		}
 
-		if msg.Text == "итоги произ. месяц" {
+		if msg.Text == "итоги произ. дата" {
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   "отправьте сообщение в формате 'итоги год месяц', например 'итоги 2024 08'",
+				Text: "отправьте сообщение в формате 'итоги год месяц', например 'итоги 2024 08'\n" +
+					"или 'итоги 2024 08 21' для получения итогов по конкретному дню",
 			})
 			return
 		}
