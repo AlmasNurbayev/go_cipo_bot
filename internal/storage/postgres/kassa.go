@@ -14,7 +14,10 @@ func (s *Storage) ListKassa(ctx context.Context) ([]models.KassaEntity, error) {
 	op := "storage.ListKassa"
 	log := s.log.With(slog.String("op", op))
 
-	query := `SELECT * FROM kassa;`
+	query := `
+	SELECT k.*, org.name AS organization_name 
+	FROM kassa k
+	LEFT JOIN organizations org ON org.id = k.organization_id;`
 
 	var kassa []models.KassaEntity
 	var err error

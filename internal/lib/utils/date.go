@@ -107,7 +107,7 @@ func GetPeriodByMode(mode string) (time.Time, time.Time, error) {
 		input := strings.Join(parts[1:], " ")
 		t, err := time.Parse("2006 01", input)
 		if err != nil {
-			panic(err)
+			return time.Time{}, time.Time{}, errors.New("неверный формат дат YYYY MM")
 		}
 		start = time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC)
 		end = start.AddDate(0, 1, 0).Add(-time.Nanosecond)

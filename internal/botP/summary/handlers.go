@@ -66,9 +66,27 @@ func summaryHandler(storage storageI,
 			"        смешанно: " + p.Sprintf("%.0f", data.SumSalesMixed) + "\n" +
 			"        прочее: " + p.Sprintf("%.0f", data.SumSalesOther) + "\n" +
 			"сумма возвратов: " + p.Sprintf("%.0f", data.SumReturns) + "\n" +
-			"\n" +
-			"Выемки: " + p.Sprintf("%.0f", data.SumOutputCash) + "\n" +
-			"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n"
+			"\n"
+
+		// если есть больше 1 кассы, то выводим информацию по ним
+		if len(data.KassaTotal) > 1 {
+			text += "по кассам:\n"
+		}
+
+		for _, kassa := range data.KassaTotal {
+			// если нет чеков по кассе или одна касса, то пропускаем
+			if kassa.Count == 0 || len(data.KassaTotal) == 1 {
+				continue
+			}
+			text += "<b>" + kassa.NameKassa + "</b> (" + kassa.NameOrganization + ") " +
+				"кол-во чеков: " + strconv.Itoa(kassa.Count) + "\n" +
+				"чистая сумма продаж: " + p.Sprintf("%.0f", kassa.Sum) + "\n" +
+				"сумма продаж: " + p.Sprintf("%.0f", kassa.SumSales) + "\n" +
+				"сумма возвратов: " + p.Sprintf("%.0f", kassa.SumReturns) + "\n"
+		}
+		text +=
+			"\nВыемки: " + p.Sprintf("%.0f", data.SumOutputCash) + "\n" +
+				"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n"
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID:      update.Message.Chat.ID,
 			Text:        text,

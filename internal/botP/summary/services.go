@@ -19,6 +19,7 @@ import (
 type storageI interface {
 	ListTransactionsByDate(context.Context, time.Time, time.Time) ([]modelsI.TransactionEntity, error)
 	GetTransactionById(context.Context, int64) (modelsI.TransactionEntity, error)
+	ListKassa(context.Context) ([]modelsI.KassaEntity, error)
 }
 
 func getSummaryDate(mode string, storage storageI,
@@ -36,10 +37,11 @@ func getSummaryDate(mode string, storage storageI,
 		return result, err
 	}
 
-	result.StartDate = start
-	result.EndDate = end
-	result.DateMode = mode
-
+	kassas, err := storage.ListKassa(context.Background())
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return result, err
+	}
 	data, err := storage.ListTransactionsByDate(context.Background(), start, end)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
@@ -47,7 +49,10 @@ func getSummaryDate(mode string, storage storageI,
 	}
 	log.Info("transactions count", slog.Int("count", len(data)))
 
-	result = utils.ConvertTransToTotal(result, data)
+	result = utils.ConvertTransToTotal(data, kassas)
+	result.StartDate = start
+	result.EndDate = end
+	result.DateMode = mode
 
 	return result, err
 }
