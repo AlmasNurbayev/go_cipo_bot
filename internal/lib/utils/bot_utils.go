@@ -176,7 +176,7 @@ func ConvertNewOperationToMessageText(message modelsI.MessagesType,
 	kassas []modelsI.KassaEntity) string {
 	var sb strings.Builder
 	for _, tx := range message.Transactions {
-		sumStr := "<b>" + FormatNumber(tx.Sum_operation.Float64) + "</b>"
+		sumStr := FormatNumber(tx.Sum_operation.Float64)
 
 		kassa := slices.IndexFunc(kassas, func(k modelsI.KassaEntity) bool { return k.Id == tx.Kassa_id })
 		kassaString := ""
@@ -185,14 +185,19 @@ func ConvertNewOperationToMessageText(message modelsI.MessagesType,
 			kassaString = kassas[kassa].Name_kassa
 		}
 
-		sb.WriteString(" 💸 " + kassaString + " №" + strconv.FormatInt(tx.Id, 10) + " от " +
-			tx.Operationdate.Time.Format("15:04") + " " +
-			GetTypeOperationText(tx) +
-			" " + sumStr + "\n")
+		sb.WriteString("<b>" + kassaString + " №" + strconv.FormatInt(tx.Id, 10) + " от " +
+			tx.Operationdate.Time.Format("15:04 02.01.2006") + " " +
+			GetTypeOperationText(tx) + " " +
+			GetTypePaymentText(tx) + " " + sumStr + "</b>" + "\n")
 
 		for _, item := range tx.ChequeJSON {
-			sb.WriteString(" • " + item.Name + " (" + item.Size.String + ") ₸ " + FormatNumber(item.Sum) + "\n")
+			sb.WriteString(
+				`<a href="` + item.MainImageURL.String + `">` +
+					"• " + item.Name + " (" + item.Size.String + ") ₸ " + FormatNumber(item.Sum) +
+					"</a>" + "\n",
+			)
 		}
+		sb.WriteString("\n")
 
 	}
 	return sb.String()
@@ -261,7 +266,7 @@ func SendAction(chatID int64, action string, b *bot.Bot) error {
 
 func GetTypePaymentText(oper modelsI.TransactionEntity) string {
 	if oper.Paymenttypes == nil || len(*oper.Paymenttypes) == 0 {
-		return "Неизвестно"
+		return ""
 	}
 
 	switch len(*oper.Paymenttypes) {

@@ -14,16 +14,6 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// type NatsConsumerApp struct {
-// 	Log     *slog.Logger
-// 	Bot     *bot.Bot
-// 	Cfg     *config.Config
-// 	Ctx     context.Context
-// 	Nc      *nats.Conn
-// 	Js      nats.JetStreamContext
-// 	Storage storageI
-// }
-
 type storageI interface {
 	ListKassa(context.Context) ([]modelsI.KassaEntity, error)
 	GetKassaById(context.Context, int64) (modelsI.KassaEntity, error)
@@ -85,11 +75,15 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 				if err != nil {
 					log.Error("List kassa error", slog.Any("err", err))
 				}
-
+				text := "Новые транзакции: " + "\n" + utils.ConvertNewOperationToMessageText(data, kassas)
+				isDisabled := true
 				b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID:    data.Telegram_id,
-					Text:      "Новые транзакции: " + "\n" + utils.ConvertNewOperationToMessageText(data, kassas),
+					Text:      text,
 					ParseMode: models.ParseModeHTML,
+					LinkPreviewOptions: &models.LinkPreviewOptions{
+						IsDisabled: &isDisabled,
+					},
 				})
 				msg.Ack()
 			}
