@@ -24,7 +24,7 @@ type KafkaConsumerApp struct {
 	Storage storageI
 }
 
-type storageI interface {
+type _storageI interface {
 	ListKassa(context.Context) ([]modelsI.KassaEntity, error)
 	GetKassaById(context.Context, int64) (modelsI.KassaEntity, error)
 }

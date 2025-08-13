@@ -19,7 +19,7 @@ func SendToNats(cfg *config.Config, Log1 *slog.Logger,
 	subject := "new_transactions"
 
 	connectionString := "nats://" + cfg.NATS_NAME + ":" + cfg.NATS_PORT
-	log.Info("Connecting to NATS", "connectionString", connectionString, "topic", subject)
+	log.Info("Connecting to NATS", "connectionString", connectionString, "subject", subject)
 	nc, err := nats.Connect(connectionString,
 		nats.RetryOnFailedConnect(true),
 		nats.MaxReconnects(3),

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
@@ -58,18 +59,20 @@ func main() {
 	go func() {
 		httpApp.Run()
 	}()
-	// go func() {
-	// 	kafka.Run()
-	// }()
 
-	//done := make(chan os.Signal, 1)
-	//signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		if err := botP.RunNatsConsumer(ctx, cfg, Log, botApp.Bot, botApp.Storage); err != nil {
+			Log.Error("error run nats consumer", slog.String("err", err.Error()))
+		}
+	}()
 
 	<-ctx.Done()
-	Log.Info("received signal DONE signal")
+	Log.Warn("received signal DONE signal")
 	fmt.Println("received signal DONE signal")
+
+	time.Sleep(cfg.BOT_TIMEOUT) // timeout)
 
 	botApp.Stop()
 	httpApp.Stop()
-	Log.Warn("bot, http server, kafka stopped")
+	Log.Warn("bot, http server, nats stopped")
 }
