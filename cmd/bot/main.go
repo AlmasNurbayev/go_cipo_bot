@@ -63,6 +63,7 @@ func main() {
 	go func() {
 		if err := botP.RunNatsConsumer(ctx, cfg, Log, botApp.Bot, botApp.Storage); err != nil {
 			Log.Error("error run nats consumer", slog.String("err", err.Error()))
+			cancel()
 		}
 	}()
 

@@ -12,12 +12,9 @@ RUN go mod download && go mod verify && go mod tidy
 COPY . .
 
 # Собираем приложение
-RUN go build -o SERVER ./cmd/server/main.go
+RUN go build -o BOT ./cmd/bot/main.go
 RUN go build -o MIGRATOR ./cmd/migrator/main.go
-RUN go build -o PARSER ./cmd/parser/main.go
-RUN go build -o SEEDER ./cmd/seeder/main.go
-RUN go build -o CLEARDB ./cmd/cleardb/main.go
-
+RUN go build -o KOFD_UPDATER ./cmd/kofd_updater/main.go
 
 # Используем stage 2: минимальный контейнер
 FROM alpine:3.21.3 AS final
@@ -30,11 +27,8 @@ RUN apk add --no-cache tzdata curl
 
 # Копируем бинарники, миграции и конфиги из builder-образа
 COPY --from=builder /app/migrations ./migrations
-COPY --from=builder /app/seeds ./seeds
-COPY --from=builder /app/SERVER .
+COPY --from=builder /app/BOT .
 COPY --from=builder /app/MIGRATOR .
-COPY --from=builder /app/PARSER .
-COPY --from=builder /app/SEEDER .
-COPY --from=builder /app/CLEARDB .
+COPY --from=builder /app/KOFD_UPDATER .
 
-CMD ["sh", "-c", "./MIGRATOR -typeTask up -dsn $DSN && ./SEEDER -typeTask up -dsn $DSN && exec ./SERVER"]
+CMD ["sh", "-c", "./MIGRATOR -typeTask up -dsn $DSN && exec ./BOT"]
