@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
@@ -51,9 +52,12 @@ func initKeyboard(ctx context.Context, b *bot.Bot, update *models.Update) {
 		ResizeKeyboard:  true,
 		OneTimeKeyboard: true,
 	}
-	b.SendMessage(ctx, &bot.SendMessageParams{
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.Message.Chat.ID,
 		Text:        "Выберите период:",
 		ReplyMarkup: kb,
 	})
+	if err != nil {
+		fmt.Println("error sending message")
+	}
 }

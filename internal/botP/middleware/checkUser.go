@@ -31,18 +31,24 @@ func CheckUser(storage storageI, log1 *slog.Logger) bot.Middleware {
 			isValid, err := UserIsValid(ctx, log, storage, strconv.Itoa(int(update.Message.From.ID)))
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
-				b.SendMessage(ctx, &bot.SendMessageParams{
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: update.Message.Chat.ID,
 					Text:   "Error if checking user",
 				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
 				return
 			}
 			if !isValid {
 				log.Warn("denied: ", slog.String("err", "user not authorized"))
-				b.SendMessage(ctx, &bot.SendMessageParams{
+				_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: update.Message.Chat.ID,
 					Text:   "👎 User not authorized",
 				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
 				return
 			}
 			// Your middleware logic here

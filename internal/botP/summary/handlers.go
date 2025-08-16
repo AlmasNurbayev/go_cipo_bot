@@ -30,29 +30,38 @@ func summaryHandler(storage storageI,
 		parts := strings.Split(msg.Text, " ")
 		if len(parts) < 2 {
 			log.Warn("summary called < 2 words: " + msg.Text)
-			b.SendMessage(ctx, &bot.SendMessageParams{
+			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
 				Text:   "запрос итоги должен быть в формате: 'итоги тек. день' или 'итоги пр. день' и т.д. или 'итоги 2024 08' или 'итоги 2024 08 21' или 'итоги 2024'",
 			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
 			return
 		}
 
 		if msg.Text == "итоги произ. дата" {
-			b.SendMessage(ctx, &bot.SendMessageParams{
+			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
 				Text: "отправьте сообщение в формате 'итоги год месяц', например 'итоги 2024 08'\n" +
 					"или 'итоги 2024 08 21' для получения итогов по конкретному дню",
 			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
 			return
 		}
 
 		data, err := getSummaryDate(msg.Text, storage, log)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
-			b.SendMessage(ctx, &bot.SendMessageParams{
+			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
 				Text:   "Ошибка получения данных",
 			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
 		}
 		p := message.NewPrinter(language.Russian)
 		text := "<b>" + data.DateMode +
@@ -87,12 +96,15 @@ func summaryHandler(storage storageI,
 		text +=
 			"\nВыемки: " + p.Sprintf("%.0f", data.SumOutputCash) + "\n" +
 				"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n"
-		b.SendMessage(ctx, &bot.SendMessageParams{
+		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID:      update.Message.Chat.ID,
 			Text:        text,
 			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: summaryInlineKb(data.StartDate, data.EndDate),
 		})
+		if err != nil {
+			log.Error("error sending message", slog.String("err", err.Error()))
+		}
 	}
 }
 
@@ -122,26 +134,35 @@ func summaryCallbackHandler(storage storageI,
 		}
 		cb := update.CallbackQuery
 		log.Info("called callback", slog.String("data", cb.Data))
-		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
 			ShowAlert:       false,
 		})
+		if err != nil {
+			log.Error("error answering callback query", slog.String("err", err.Error()))
+		}
 
 		if strings.Contains(cb.Data, "summary_allChecks_") {
 			response, markups, err := getAllChecks(cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
-				b.SendMessage(ctx, &bot.SendMessageParams{
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: cb.Message.Message.Chat.ID,
 					Text:   "Ошибка получения данных",
 				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
 			}
-			b.SendMessage(ctx, &bot.SendMessageParams{
+			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:      cb.Message.Message.Chat.ID,
 				Text:        response,
 				ParseMode:   models.ParseModeHTML,
 				ReplyMarkup: markups,
 			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
 		}
 
 		if strings.Contains(cb.Data, "summary_analytics_") {
@@ -152,17 +173,23 @@ func summaryCallbackHandler(storage storageI,
 			response, markups, err := getAnalytics(cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
-				b.SendMessage(ctx, &bot.SendMessageParams{
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: cb.Message.Message.Chat.ID,
 					Text:   "Ошибка получения данных",
 				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
 			}
-			b.SendMessage(ctx, &bot.SendMessageParams{
+			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:      cb.Message.Message.Chat.ID,
 				Text:        response,
 				ParseMode:   models.ParseModeHTML,
 				ReplyMarkup: markups,
 			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
 		}
 		//if cb.Data == "summary_Day" {
 
@@ -179,35 +206,47 @@ func summaryGetCheckHandler(storage storageI,
 			return
 		}
 		cb := update.CallbackQuery
-		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
 			ShowAlert:       false,
 		})
-		err := utils.SendAction(cb.Message.Message.Chat.ID, "upload_photo", b)
+		if err != nil {
+			log.Error("error answering callback query", slog.String("err", err.Error()))
+		}
+		err = utils.SendAction(cb.Message.Message.Chat.ID, "upload_photo", b)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 		}
 		inputMedia, stringResponce, err := getOneCheck(cb.Data, storage, log, cfg)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
-			b.SendMessage(ctx, &bot.SendMessageParams{
+			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: cb.Message.Message.Chat.ID,
 				Text:   "Ошибка получения данных",
 			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
 		}
 
 		// Если есть текстовое сообщение, то отправляем его, иначе отправляем в виде фото
 		if stringResponce != "" {
-			b.SendMessage(ctx, &bot.SendMessageParams{
+			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:    cb.Message.Message.Chat.ID,
 				Text:      stringResponce,
 				ParseMode: models.ParseModeHTML,
 			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
 		} else {
-			b.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
+			_, err = b.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
 				ChatID: cb.Message.Message.Chat.ID,
 				Media:  *inputMedia,
 			})
+			if err != nil {
+				log.Error("error sending media group", slog.String("err", err.Error()))
+			}
 		}
 	}
 }

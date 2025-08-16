@@ -2,6 +2,7 @@ package botP
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/middleware"
@@ -61,7 +62,10 @@ func (b *BotApp) Run() {
 }
 
 func (b *BotApp) Stop() {
-	b.Bot.Close(b.Ctx)
+	_, err := b.Bot.Close(b.Ctx)
+	if err != nil {
+		b.Log.Error("error closing bot", slog.String("err", err.Error()))
+	}
 	b.Storage.Close()
 }
 
@@ -69,9 +73,12 @@ func defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.Message == nil {
 		return
 	}
-	b.SendMessage(ctx, &bot.SendMessageParams{
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
 		Text:      "Сообщение не распознано",
 		ParseMode: models.ParseModeMarkdown,
 	})
+	if err != nil {
+		fmt.Println("error sending message", err.Error())
+	}
 }

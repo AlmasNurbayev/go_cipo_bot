@@ -46,7 +46,12 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 	if err != nil {
 		return err
 	}
-	defer sub.Unsubscribe()
+	defer func() {
+		err := sub.Unsubscribe()
+		if err != nil {
+			log.Error("Error unsubscribing from NATS", slog.Any("err", err))
+		}
+	}()
 
 	log.Info("Consumer started", slog.String("stream", cfg.NATS_STREAM_NAME), slog.String("subject", "new_transactions"))
 
@@ -77,7 +82,7 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 				}
 				text := "Новые транзакции: " + "\n" + utils.ConvertNewOperationToMessageText(data, kassas)
 				isDisabled := true
-				b.SendMessage(ctx, &bot.SendMessageParams{
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID:    data.Telegram_id,
 					Text:      text,
 					ParseMode: models.ParseModeHTML,
@@ -85,7 +90,13 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 						IsDisabled: &isDisabled,
 					},
 				})
-				msg.Ack()
+				if err != nil {
+					log.Error("Send message error", slog.Any("err", err))
+				}
+				err = msg.Ack()
+				if err != nil {
+					log.Error("Message ack error", slog.Any("err", err))
+				}
 			}
 		}
 	}

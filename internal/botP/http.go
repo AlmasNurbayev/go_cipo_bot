@@ -2,7 +2,6 @@ package botP
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -19,7 +18,7 @@ func NewHttpApp(cfg *config.Config, log *slog.Logger) (*HttpApp, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "OK")
+		//fmt.Fprint(w, "OK")
 	})
 
 	server := &http.Server{
