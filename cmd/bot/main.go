@@ -70,7 +70,7 @@ func main() {
 	Log.Warn("received signal DONE signal")
 	fmt.Println("received signal DONE signal")
 
-	time.Sleep(cfg.BOT_TIMEOUT) // timeout)
+	time.Sleep(cfg.BOT_TIMEOUT / 2) // timeout)
 
 	botApp.Stop()
 	httpApp.Stop()

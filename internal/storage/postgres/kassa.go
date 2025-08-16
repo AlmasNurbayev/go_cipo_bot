@@ -41,6 +41,39 @@ func (s *Storage) ListKassa(ctx context.Context) ([]models.KassaEntity, error) {
 	return kassa, nil
 }
 
+func (s *Storage) ListKassaByBIN(ctx context.Context, bin string) ([]models.KassaEntity, error) {
+	op := "storage.ListKassa"
+	log := s.log.With(slog.String("op", op))
+
+	query := `
+	SELECT k.*, org.name AS organization_name 
+	FROM kassa k
+	LEFT JOIN organizations org ON org.id = k.organization_id
+	WHERE org.bin = $1
+	;`
+
+	var kassa []models.KassaEntity
+	var err error
+	// если есть транзакция, используем ее, иначе стандартный пул
+	if s.Tx != nil {
+		db := *s.Tx
+		err = pgxscan.Select(ctx, db, &kassa, query, bin)
+	} else {
+		db := s.Db
+		err = pgxscan.Select(ctx, db, &kassa, query, bin)
+	}
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// если выкидывается ошибка нет строк, возвращаем пустой массив
+			return kassa, nil
+		}
+		log.Error("error: ", slog.String("err", err.Error()))
+		return kassa, err
+	}
+	return kassa, nil
+}
+
 func (s *Storage) GetKassaById(ctx context.Context, id int64) (models.KassaEntity, error) {
 	op := "storage.GetKassaById"
 	log := s.log.With(slog.String("op", op))

@@ -28,11 +28,11 @@ func summaryHandler(storage storageI,
 		//return
 		log.Info("summary called button", slog.String("text", msg.Text))
 		parts := strings.Split(msg.Text, " ")
-		if len(parts) < 3 {
-			log.Warn("summary called not 3 words: " + msg.Text)
+		if len(parts) < 2 {
+			log.Warn("summary called < 2 words: " + msg.Text)
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   "запрос итоги должен быть в формате: 'итоги тек. день' или 'итоги пр. день' и т.д. или 'итоги 2024 08'",
+				Text:   "запрос итоги должен быть в формате: 'итоги тек. день' или 'итоги пр. день' и т.д. или 'итоги 2024 08' или 'итоги 2024 08 21' или 'итоги 2024'",
 			})
 			return
 		}

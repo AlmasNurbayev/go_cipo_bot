@@ -32,7 +32,7 @@ func GetPeriodByString(interval string) (time.Time, time.Time, error) {
 // получаем границы периода из текста формата "итог тек. день"
 func GetPeriodByMode(mode string) (time.Time, time.Time, error) {
 	parts := strings.Split(mode, " ")
-	if len(parts) < 3 {
+	if len(parts) < 2 {
 		return time.Time{}, time.Time{}, errors.New("неверный формат дат")
 	}
 
@@ -102,6 +102,15 @@ func GetPeriodByMode(mode string) (time.Time, time.Time, error) {
 		location := now.Location()
 		start = time.Date(now.Year()-1, time.January, 1, 0, 0, 0, 0, location)
 		end = time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, location).Add(-time.Nanosecond)
+	} else if []rune(parts[1])[0] == '2' && len(parts) == 2 {
+		// если второе слово начинается с 2 и передано 2 слова, то распарсиваем как год
+		input := strings.Join(parts[1:], " ")
+		t, err := time.Parse("2006", input)
+		if err != nil {
+			return time.Time{}, time.Time{}, errors.New("неверный формат дат YYYY")
+		}
+		start = time.Date(t.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
+		end = start.AddDate(1, 0, 0).Add(-time.Nanosecond)
 	} else if []rune(parts[1])[0] == '2' && len(parts) == 3 {
 		// если второе слово начинается с 2 и передано 3 слова, то распарсиваем как год и месяц
 		input := strings.Join(parts[1:], " ")

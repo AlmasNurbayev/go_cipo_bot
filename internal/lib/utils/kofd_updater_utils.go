@@ -5,6 +5,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"unicode"
 
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	"github.com/guregu/null/v5"
@@ -60,20 +61,44 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 		if err != nil {
 			return names, fmt.Errorf("ошибка при парсинге цены товара: %v", err)
 		}
-		qnt, err := trimQnt(block)
-		if err != nil {
-			return names, fmt.Errorf("ошибка при парсинге количества товара: %v", err)
+		qnt := 1 // по умолчанию количество 1
+		if !strings.Contains(block, "/СКИДКА") && !strings.Contains(block, "/НАЦЕНКА") {
+			//fmt.Println("block: ", block)
+			qnt, err = trimQnt(block)
+			if err != nil {
+				return names, fmt.Errorf("ошибка при парсинге количества товара: %v", err)
+			}
 		}
 		if strings.Contains(block, "/СКИДКА") {
 			// если это про скидку, то не добавляем строку в массив, меняем цену
 			index := slices.IndexFunc(names, func(el modelsI.ChequeJSONElement) bool {
-				return el.Name == trimmedName
+				// сравниваем по имени и размеру, если есть
+				// внутри имени убираем пробелы, так как КОФД в секции скидки сам убирает пробелы
+				return strings.ReplaceAll(el.Name, " ", "") == strings.ReplaceAll(trimmedName, " ", "") &&
+					el.Size.String == findedSize
 			})
+			// fmt.Println("block", block)
+			// fmt.Println("price", price)
+			// fmt.Println("positionSum", positionSum)
+			// fmt.Println("index", index)
+			// fmt.Println("findedSize", findedSize)
+
 			if index != -1 {
+				//fmt.Println("NominalPrice", names[index].NominalPrice)
 				discountPrice := names[index].NominalPrice - math.Round(price*100)/100
 				names[index].DiscountPrice = discountPrice
 				names[index].Sum = math.Round(discountPrice*100*float64(names[index].Qnt)) / 100
 			}
+		} else if strings.Contains(block, "/НАЦЕНКА") {
+			index := slices.IndexFunc(names, func(el modelsI.ChequeJSONElement) bool {
+				return el.Name == trimmedName
+			})
+			if index != -1 {
+				discountPrice := names[index].NominalPrice + math.Round(price*100)/100
+				names[index].DiscountPrice = discountPrice
+				names[index].Sum = math.Round(discountPrice*100*float64(names[index].Qnt)) / 100
+			}
+
 		} else {
 			names = append(names, modelsI.ChequeJSONElement{
 				Name:          trimmedName,
@@ -93,6 +118,7 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 	totalSum, err := getTotalSum(dataArr[totalIndex])
 	if err != nil || totalSum != arraySum {
 		fmt.Println("не совпадение суммы или ошибка при парсинге суммы: ", err)
+		fmt.Println("чек: ", data)
 	}
 
 	//fmt.Printf("%+v\n", names)
@@ -129,19 +155,26 @@ func trimPrice(line string, positionSum int) (float64, error) {
 	priceString := ""
 	var price float64
 
-	stopRunes := map[rune]bool{')': true, '=': true}
-	runes := []rune(line)
-	var result []rune
-
-	for i := len(runes) - 1; i >= 0; i-- {
-		if stopRunes[runes[i]] {
+	for i := positionSum - 1; i >= 0; i-- {
+		r := line[i]
+		// если встретили разделитель - прекращаем
+		if r == 'x' || r == '=' || r == ':' || r == ')' {
+			priceString = line[i+1 : positionSum]
 			break
 		}
-		result = append([]rune{runes[i]}, result...) // вставка в начало
 	}
 
-	priceString = string(result)
 	priceString = strings.TrimSpace(strings.ReplaceAll(priceString, "₸", ""))
+	// ЧИСТИМ мусорные байты
+	priceString = strings.Map(func(r rune) rune {
+		if unicode.IsDigit(r) || r == '.' || r == ',' {
+			return r
+		}
+		return -1
+	}, priceString)
+
+	priceString = strings.ReplaceAll(priceString, " ", "")  // убираем неразрывный пробел
+	priceString = strings.ReplaceAll(priceString, ",", ".") // заменяем запятую на точку
 
 	if priceString != "" {
 		var err error
@@ -154,10 +187,14 @@ func trimPrice(line string, positionSum int) (float64, error) {
 }
 
 func trimQnt(line string) (int, error) {
+	//fmt.Println("line: ", line)
 	var qnt int
 
 	// не ищем если строка про скидку
-	if strings.Contains(line, "ЖЕҢІЛДІК/СКИДКА") {
+	if strings.Contains(line, "/СКИДКА") {
+		return 0, nil
+	}
+	if strings.Contains(line, "/НАЦЕНКА") {
 		return 0, nil
 	}
 
@@ -165,7 +202,10 @@ func trimQnt(line string) (int, error) {
 	idx2 := 0
 	qntString := ""
 
-	// ищес справа налево открытую и закрытую скобку
+	// ищем справа налево открытую и закрытую скобку
+	// из строки Cipo Туфли черный F6117MLB-25K-BLK (29) (шт)1 (Штука) x 26 900,00₸              = 26 900,00₸
+	// а если Kapika Туфли летние синий 82157-2 (25) (шт)1 x 4 600,00₸
+	//
 	for i := len(line) - 1; i >= 0; i-- {
 		if line[i] == '(' {
 			idx = i
@@ -175,13 +215,28 @@ func trimQnt(line string) (int, error) {
 			break
 		}
 	}
+	//fmt.Println("idx-1: ", idx-1, " idx2+1: ", idx2+1)
 
 	if idx != 0 && idx2 != 0 {
-		qntString = line[idx2+1 : idx-1]
+		qntString = line[idx2+1 : idx]
 	}
+
+	// если получили пробел или пустое делаем попытку ориентироваться на строку между (шт) и x
+	if qntString == "" || qntString == " " {
+		start := strings.Index(line, "(шт)")
+		end := strings.LastIndex(line, "x")
+
+		if start != -1 && end != -1 && start < end {
+			qntString = strings.TrimSpace(line[start+len("(шт)") : end])
+			//fmt.Println("qntString2:", "|"+qntString+"|")
+		}
+	}
+	// убираем знаки переноса строки
+	qntString = strings.ReplaceAll(strings.ReplaceAll(qntString, "\n", ""), "\r", "")
 
 	if qntString != "" {
 		var err error
+		//fmt.Println("qntString: ", "|"+qntString+"|")
 		qnt, err = ParseStringToInt(qntString)
 		if err != nil {
 			return 0, fmt.Errorf("ошибка при парсинге количества товара: %v", err)

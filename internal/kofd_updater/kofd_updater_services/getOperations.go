@@ -16,6 +16,7 @@ import (
 
 type storageOperations interface {
 	ListKassa(context.Context) ([]models.KassaEntity, error)
+	ListKassaByBIN(context.Context, string) ([]models.KassaEntity, error)
 	ListOrganizations(context.Context) ([]models.OrganizationEntity, error)
 	InsertTransactions(context.Context, []models.TransactionEntity) (int, error)
 	CheckExistsTransactions(context.Context, []string) ([]string, error)
@@ -31,7 +32,7 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 	// defer cancel()
 
 	//var transactions []models.TransactionEntity
-	requestKassaList, err := storage.ListKassa(ctx)
+	requestKassaList, err := storage.ListKassaByBIN(ctx, BIN)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return 0, err
@@ -121,6 +122,7 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 					sb.WriteString("\n")
 				}
 				chequeString := sb.String()
+				//fmt.Println("Operationdate: ", listEntity[index].Operationdate)
 				names, err := utils.GetGoodsFromCheque(chequeString)
 
 				// перебираем товары из чека и запрашиваем дополнительную информацию от Cipo

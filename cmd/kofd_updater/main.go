@@ -127,10 +127,10 @@ func main() {
 		storage.Close()
 		return
 	}
-	err = kofd_updater_services.SendToNats(cfg, Log, messages)
-	if err != nil {
-		Log.Error("Error broker send:", slog.String("err", err.Error()))
-	}
+	// err = kofd_updater_services.SendToNats(cfg, Log, messages)
+	// if err != nil {
+	// 	Log.Error("Error broker send:", slog.String("err", err.Error()))
+	// }
 
 	err = pgxTransaction.Commit(ctx)
 	if err != nil {

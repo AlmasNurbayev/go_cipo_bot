@@ -157,6 +157,7 @@ func getAnalytics(mode string, storage storageI,
 		return "", markups, err
 	}
 	log.Info("date", slog.Time("start", start), slog.Time("end", end))
+	diff := int(end.Sub(start).Hours() / 24)
 
 	data, err := storage.ListTransactionsByDate(context.Background(), start, end)
 	if err != nil {
@@ -167,7 +168,9 @@ func getAnalytics(mode string, storage storageI,
 
 	var seasons []modelsI.Simple
 	var days []modelsI.Simple
+	var monthes []modelsI.Simple
 	var vids []modelsI.Simple
+	var kassas []modelsI.Simple
 
 	// собираем данные в массивы
 	totalOperationsSum := 0.0
@@ -190,14 +193,18 @@ func getAnalytics(mode string, storage storageI,
 			if item.Subtype.Int64 == 3 {
 				// Возврат, минусом
 				totalSum -= cheque.Sum
-				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Sum: -cheque.Sum})
-				days = append(days, modelsI.Simple{Item: item.Operationdate.Time.Format("02.01.2006"), Sum: -cheque.Sum})
-				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Sum: -cheque.Sum})
+				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Count: 1, Sum: -cheque.Sum})
+				days = append(days, modelsI.Simple{Item: item.Operationdate.Time.Format("02.01.2006"), Count: 1, Sum: -cheque.Sum})
+				monthes = append(monthes, modelsI.Simple{Item: item.Operationdate.Time.Format("2006.01"), Count: 1, Sum: -cheque.Sum})
+				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Count: 1, Sum: -cheque.Sum})
+				kassas = append(kassas, modelsI.Simple{Item: item.Kassa_name.String, Count: 1, Sum: -cheque.Sum})
 			} else {
 				totalSum += cheque.Sum
-				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Sum: cheque.Sum})
-				days = append(days, modelsI.Simple{Item: item.Operationdate.Time.Format("02.01.2006"), Sum: cheque.Sum})
-				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Sum: cheque.Sum})
+				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Count: 1, Sum: cheque.Sum})
+				days = append(days, modelsI.Simple{Item: item.Operationdate.Time.Format("02.01.2006"), Count: 1, Sum: cheque.Sum})
+				monthes = append(monthes, modelsI.Simple{Item: item.Operationdate.Time.Format("2006.01"), Count: 1, Sum: cheque.Sum})
+				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Count: 1, Sum: cheque.Sum})
+				kassas = append(kassas, modelsI.Simple{Item: item.Kassa_name.String, Count: 1, Sum: cheque.Sum})
 			}
 			totalDiscount += (cheque.NominalPrice - cheque.DiscountPrice) * float64(cheque.Qnt)
 		}
@@ -208,6 +215,10 @@ func getAnalytics(mode string, storage storageI,
 	sort.Slice(days, func(i, j int) bool {
 		return days[i].Item < days[j].Item
 	})
+	monthes = utils.GroupByItem(monthes)
+	sort.Slice(monthes, func(i, j int) bool {
+		return monthes[i].Item < monthes[j].Item
+	})
 	seasons = utils.GroupByItem(seasons)
 	sort.Slice(seasons, func(i, j int) bool {
 		return seasons[i].Sum > seasons[j].Sum // убывание
@@ -216,16 +227,27 @@ func getAnalytics(mode string, storage storageI,
 	sort.Slice(vids, func(i, j int) bool {
 		return vids[i].Sum > vids[j].Sum // убывание
 	})
+	kassas = utils.GroupByItem(kassas)
+	sort.Slice(kassas, func(i, j int) bool {
+		return kassas[i].Sum > kassas[j].Sum // убывание
+	})
 
 	var sb strings.Builder
 	sb.WriteString("<b>" + mode + "</b>\n")
 	sb.WriteString("В аналитику не попали чеки на: " + utils.FormatNumber(totalOperationsSum-totalSum) + " ₸\n\n")
-	sb.WriteString("<b>Сезоны</b>\n")
-	sb.WriteString(utils.StructToString(seasons) + "\n")
-	sb.WriteString("<b>Дни</b>\n")
-	sb.WriteString(utils.StructToString(days) + "\n")
-	sb.WriteString("<b>Виды</b>\n")
-	sb.WriteString(utils.StructToString(vids) + "\n\n")
+	sb.WriteString("<b>Сезоны:</b>\n")
+	sb.WriteString(utils.StructToString(seasons, false, true) + "\n\n")
+	if diff <= 60 {
+		sb.WriteString("<b>Дни:</b>\n")
+		sb.WriteString(utils.StructToString(days, true, true) + "\n\n")
+	}
+	sb.WriteString("<b>Месяцы:</b>\n")
+	sb.WriteString(utils.StructToString(monthes, false, true) + "\n\n")
+	sb.WriteString("<b>Виды:</b>\n")
+	sb.WriteString(utils.StructToString(vids, false, true) + "\n\n")
+	sb.WriteString("<b>Кассы:</b>\n")
+	sb.WriteString(utils.StructToString(kassas, false, true) + "\n\n")
+
 	sb.WriteString("<b>Примененные скидки от " + utils.FormatNumber(totalOperationsSum) + "</b>\n")
 	sb.WriteString(" =" + utils.FormatNumber(totalDiscount) + " ₸ или " +
 		utils.FormatNumber(totalDiscount/totalSum*100) + "% \n")
