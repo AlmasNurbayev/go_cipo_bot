@@ -30,8 +30,8 @@ services:
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime:ro
-    ports:
-      - 8443:8443
+    #ports:
+    #  - 8443:8443
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:${HTTP_PORT}/healthz']
       interval: 10s
