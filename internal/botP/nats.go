@@ -38,6 +38,24 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 		return err
 	}
 
+	stream, err := js.StreamInfo(cfg.NATS_STREAM_NAME)
+	if err != nil {
+		// если стрима нет, создаём
+		_, err = js.AddStream(&nats.StreamConfig{
+			Name:      cfg.NATS_STREAM_NAME,
+			Subjects:  []string{"new_transactions"},
+			Storage:   nats.FileStorage, // или MemoryStorage
+			Retention: nats.LimitsPolicy,
+			MaxBytes:  -1,
+		})
+		if err != nil {
+			log.Error("failed to create stream", slog.Any("err", err))
+		}
+		log.Info("stream created", slog.String("stream", cfg.NATS_STREAM_NAME))
+	} else {
+		log.Info("stream already exists", slog.String("stream", stream.Config.Name))
+	}
+
 	// Создаём или подключаемся к consumer
 	sub, err := js.PullSubscribe("new_transactions", "bot_consumer",
 		nats.BindStream(cfg.NATS_STREAM_NAME),
