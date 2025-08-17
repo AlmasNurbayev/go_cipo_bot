@@ -7,6 +7,7 @@ services:
     environment:
       - TZ=Asia/Almaty
       - ENV=${ENV}
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@cipo_bot_postgres:5432/${POSTGRES_DB}?sslmode=disable
       - BOT_TOKEN=${BOT_TOKEN}
       - BOT_TIMEOUT=${BOT_TIMEOUT}
       - HTTP_PORT=${HTTP_PORT}
