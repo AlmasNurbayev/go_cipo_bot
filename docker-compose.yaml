@@ -64,8 +64,8 @@ services:
     image: nats:2.11.7-alpine3.22
     #container_name: ${NATS_NAME}
     ports:
-      - ${NATS_PORT}:${NATS_PORT} # убрать потом
-      # - ${NATS_MONITORING_PORT}:${NATS_MONITORING_PORT} # HTTP мониторинг
+      #- ${NATS_PORT}:${NATS_PORT} # убрать потом
+      - ${NATS_MONITORING_PORT}:${NATS_MONITORING_PORT} # HTTP мониторинг
       # - "6222:6222"   # кластеринг
     command: >
       -js
