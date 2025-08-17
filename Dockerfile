@@ -34,4 +34,5 @@ COPY --from=builder /app/KOFD_UPDATER .
 RUN ls -lah /app && ls -lah /app/MIGRATOR
 RUN chmod +x /app/MIGRATOR /app/BOT /app/KOFD_UPDATER
 
-CMD ["sh", "-c", "./MIGRATOR -typeTask up -dsn $DSN && exec ./BOT"]
+#CMD ["sh", "-c", "./MIGRATOR -typeTask up -dsn $DSN && exec ./BOT"]
+CMD [ "sh", "-c", "/app/MIGRATOR -typeTask up -dsn $DSN && exec /app/BOT" ]
