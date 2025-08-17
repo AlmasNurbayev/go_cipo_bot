@@ -25,6 +25,7 @@ WORKDIR /app/
 # tzdata - для установки временной зоны
 # curl - для проверки доступности сервиса
 RUN apk add --no-cache tzdata curl
+RUN mkdir -p /app/assets
 
 # Копируем бинарники, миграции и конфиги из builder-образа
 COPY --from=builder /app/migrations ./migrations
