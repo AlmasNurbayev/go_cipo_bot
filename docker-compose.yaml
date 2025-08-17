@@ -31,9 +31,6 @@ services:
     volumes:
       - ./volume_assets:/app/assets
       - /etc/localtime:/etc/localtime:ro
-    ports:
-      - 4502:4502 # CIPO API
-      - 443:443 # CIPO API
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:${HTTP_PORT}/healthz']
       interval: 10s
@@ -42,7 +39,12 @@ services:
     restart: unless-stopped
     depends_on:
       - cipo_bot_postgres
-
+    networks:
+      go_cipo_bot:  
+            aliases:  
+                - go_cipo_bot.local
+      default:          
+      
   cipo_bot_postgres:
     image: postgres:17.3-alpine3.21
     #container_name: cipo_backend_postgres
@@ -113,3 +115,8 @@ services:
   #     DYNAMIC_CONFIG_ENABLED: 'true'
   #   depends_on:
   #     - kafka
+networks:
+    go_cipo_bot:
+        name: 'go_cipo_bot'
+    default:
+            
