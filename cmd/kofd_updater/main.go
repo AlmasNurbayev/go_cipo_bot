@@ -64,7 +64,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
 	defer cancel()
 
-	dsn := "postgres://" + cfg.POSTGRES_USER + ":" + cfg.POSTGRES_PASSWORD + "@" + cfg.POSTGRES_HOST + ":" + cfg.POSTGRES_PORT + "/" + cfg.POSTGRES_DB + "?sslmode=disable"
+	dsn := "postgres://" + cfg.POSTGRES_USER + ":" + cfg.POSTGRES_PASSWORD + "@" + cfg.POSTGRES_HOST + ":" + cfg.POSTGRES_INT_PORT + "/" + cfg.POSTGRES_DB + "?sslmode=disable"
 	storage, err := storage.NewStorage(ctx, dsn, Log)
 	if err != nil {
 		Log.Error("not init postgres storage")
