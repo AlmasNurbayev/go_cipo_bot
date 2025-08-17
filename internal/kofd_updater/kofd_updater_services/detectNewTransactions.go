@@ -30,7 +30,7 @@ func DetectNewOperations(ctx context.Context, storage storageOperations2,
 	if len(operations) == 0 {
 		return messages, nil
 	}
-	log.Info("operations", slog.Int("count", len(operations)))
+	log.Info("get last operations", slog.Int("count", len(operations)))
 
 	users, err := storage.ListUsers(ctx)
 	if err != nil {

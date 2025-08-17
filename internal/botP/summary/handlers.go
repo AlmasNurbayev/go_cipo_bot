@@ -95,7 +95,16 @@ func summaryHandler(storage storageI,
 		}
 		text +=
 			"\nВыемки: " + p.Sprintf("%.0f", data.SumOutputCash) + "\n" +
-				"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n"
+				"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n\n" +
+				"<b>Наличие денег в кассах: </b>" + "\n"
+
+		for _, kassa := range data.KassaTotal {
+			if kassa.CashAmount != 0 {
+				text += kassa.NameKassa +
+					" остаток: " + p.Sprintf("%.0f", kassa.CashAmount) + "\n"
+			}
+		}
+
 		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID:      update.Message.Chat.ID,
 			Text:        text,

@@ -54,6 +54,20 @@ func getSummaryDate(mode string, storage storageI,
 	result.EndDate = end
 	result.DateMode = mode
 
+	// вытаскиваем активные кассы чтобы получить остатки денег
+	for i := range result.KassaTotal {
+		if !result.KassaTotal[i].IsActive {
+			continue
+		}
+		// операции в обратном порядке
+		for j := len(data) - 1; i >= 0; i-- {
+			if data[j].Kassa_id == result.KassaTotal[i].KassaId {
+				result.KassaTotal[i].CashAmount = data[j].Availablesum.Float64
+				break
+			}
+		}
+	}
+
 	return result, err
 }
 

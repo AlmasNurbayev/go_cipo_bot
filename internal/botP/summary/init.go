@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
@@ -13,13 +14,13 @@ import (
 
 func Init(b *bot.Bot, storage *storage.Storage,
 	log *slog.Logger, cfg *config.Config) {
-	// вывести ReplyMarkup - большую клавиатуру с кнопками
+	// слушаем сообщения
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/summary", bot.MatchTypeExact, initKeyboard)
-	// услышать сообщения с большой клавиатуры
-	b.RegisterHandler(bot.HandlerTypeMessageText, "итоги", bot.MatchTypePrefix, summaryHandler(storage, log, cfg))
-	// услышать нажатия на inline-кнопки из сообщений
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "summary_", bot.MatchTypePrefix, summaryCallbackHandler(storage, log, cfg))
+	// любой регистр и любое количество символов после "итоги"
+	regSummary := regexp.MustCompile(`(?i)^итоги.*`)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regSummary, summaryHandler(storage, log, cfg))
 
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "summary_", bot.MatchTypePrefix, summaryCallbackHandler(storage, log, cfg))
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "getCheck_", bot.MatchTypePrefix, summaryGetCheckHandler(storage, log, cfg))
 }
 

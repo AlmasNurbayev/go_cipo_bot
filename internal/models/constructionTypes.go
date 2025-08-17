@@ -24,12 +24,14 @@ type TypeTransactionsTotal struct {
 	SumOther        float64
 	SumMixed        float64
 	Sum             float64
+	CashAmount      float64
 	Transactions    []TransactionEntity
 	KassaTotal      []TypeKassaTotal
 }
 
 type TypeKassaTotal struct {
 	KassaId          int64
+	IsActive         bool
 	NameKassa        string
 	NameOrganization string
 	Count            int
@@ -50,4 +52,5 @@ type TypeKassaTotal struct {
 	SumOther         float64
 	SumMixed         float64
 	Sum              float64
+	CashAmount       float64
 }
