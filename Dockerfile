@@ -12,6 +12,7 @@ RUN go mod download && go mod verify && go mod tidy
 COPY . .
 
 # Собираем приложение
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 RUN go build -o BOT ./cmd/bot/main.go
 RUN go build -o MIGRATOR ./cmd/migrator/main.go
 RUN go build -o KOFD_UPDATER ./cmd/kofd_updater/main.go
