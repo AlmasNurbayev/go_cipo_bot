@@ -1,30 +1,45 @@
 services:
-  # cipo_bot:
-  #   # NO BUILD CONTAINER - RUN LOCAL
-  #   #image: almasnurbayev/go_cipo_bot:latest
-  #   image: golang:1.24.3-alpine3.20
-  #   working_dir: /app
-  #   environment:
-  #     - TZ=Asia/Almaty
-  #     - ENV=${ENV}
-  #     - BOT_TOKEN=${BOT_TOKEN}
-  #     - BOT_TIMEOUT=${BOT_TIMEOUT}
-  #     - POSTGRES_TIMEOUT=${POSTGRES_TIMEOUT}
-  #     - POSTGRES_USER=${POSTGRES_USER}
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-  #     - POSTGRES_DB=${POSTGRES_DB}
-  #     - POSTGRES_PORT=${POSTGRES_PORT}
-  #     - POSTGRES_HOST=${POSTGRES_HOST}
-  #     - SECRET_KEY=${SECRET_KEY}
-  #   volumes:
-  #     - .:/app
-  #     - /etc/localtime:/etc/localtime:ro
-  #   command: go run cmd/bot/main.go -configEnv ./.env
-  #   ports:
-  #     - 8443:8443
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - cipo_bot_postgres
+  cipo_bot:
+    #   # NO BUILD CONTAINER - RUN LOCAL
+    image: almasnurbayev/go_cipo_bot:latest
+    #   image: golang:1.24.3-alpine3.20
+    working_dir: /app
+    environment:
+      - TZ=Asia/Almaty
+      - ENV=${ENV}
+      - BOT_TOKEN=${BOT_TOKEN}
+      - BOT_TIMEOUT=${BOT_TIMEOUT}
+      - HTTP_PORT=${HTTP_PORT}
+      - POSTGRES_TIMEOUT=${POSTGRES_TIMEOUT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - SECRET_KEY=${SECRET_KEY}
+      - CIPO_PRODUCTS_URL=${CIPO_PRODUCTS_URL}
+      - CIPO_IMAGES_URL=${CIPO_IMAGES_URL}
+      - KOFD_PASSAUTH_URL=${KOFD_PASSAUTH_URL}
+      - KOFD_OPERATIONS_URL=${KOFD_OPERATIONS_URL}
+      - KAFKA_PORT=${KAFKA_PORT}
+      - KAFKA_SERVICE_NAME=${KAFKA_SERVICE_NAME}
+      - NATS_NAME=${NATS_NAME}
+      - NATS_PORT=${NATS_PORT}
+      - NATS_MONITORING_PORT=${NATS_MONITORING_PORT}
+      - NATS_STREAM_NAME=${NATS_STREAM_NAME}
+    volumes:
+      - .:/app
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 8443:8443
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:${HTTP_PORT}/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      - cipo_bot_postgres
 
   cipo_bot_postgres:
     image: postgres:17.3-alpine3.21
