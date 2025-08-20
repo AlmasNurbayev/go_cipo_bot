@@ -52,12 +52,16 @@ func main() {
 	}
 	Log.Info("dates", slog.String("firstDate", firstDate), slog.String("lastDate", lastDate))
 
-	Log.Info("load config: ")
-	cfgBytes, err := utils.PrintAsJSON(cfg)
-	if err != nil {
-		panic(err)
+	if cfg.ENV != "prod" {
+		Log.Info("load config: ")
+		cfgBytes, err := utils.PrintAsJSON(cfg)
+		if err != nil {
+			// если не удалось сериализовать конфиг, то что-то не так
+			Log.Error("error: ", slog.String("err", err.Error()))
+			return
+		}
+		fmt.Println(string(*cfgBytes))
 	}
-	fmt.Println(string(*cfgBytes))
 	Log.Debug("debug message is enabled")
 
 	//fmt.Println(lastDate, firstDate, bin)
