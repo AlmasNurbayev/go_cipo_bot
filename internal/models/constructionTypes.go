@@ -54,3 +54,12 @@ type TypeKassaTotal struct {
 	Sum              float64
 	CashAmount       float64
 }
+
+type TransactionsByDays struct {
+	Date  time.Time
+	Day   int
+	Month int
+	Year  int
+	Count int
+	Sum   float64
+}

@@ -134,3 +134,23 @@ func GetPeriodByMode(mode string) (time.Time, time.Time, error) {
 	}
 	return start, end, nil
 }
+
+// GetLastDaysPeriod возвращает начало и конец периода, массив с датами последних N дней
+// где N - количество дней, переданное в параметре days
+// например, для days=3 вернет [[2023, 10, 1],	[2023, 10, 2], [2023, 10, 3]]
+func GetLastDaysPeriod(days int) (time.Time, time.Time, [][]int, error) {
+
+	daysArr := make([][]int, days)
+	now := time.Now()
+	// начало суток (N-1) дней назад
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).
+		AddDate(0, 0, -days+1)
+	// конец сегодняшнего дня
+	end := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, int(time.Second-time.Nanosecond), now.Location())
+	for i := 0; i < days; i++ {
+		d := now.AddDate(0, 0, -i) // от текущей даты назад
+		daysArr[i] = []int{d.Year(), int(d.Month()), d.Day()}
+	}
+
+	return start, end, daysArr, nil
+}
