@@ -113,7 +113,7 @@ func main() {
 		storage.Close()
 		return
 	}
-	Log.Info("messages", slog.Int("count", len(messages)))
+	Log.Info("make new messages", slog.Int("count", len(messages)))
 
 	// отправляем операции в брокер
 	if len(messages) == 0 {
@@ -124,14 +124,11 @@ func main() {
 		} else {
 			Log.Info("DB changes committed")
 		}
-		storage.Close()
-		return
-	}
-	err = kofd_updater_services.SendToNats(cfg, Log, messages)
-	if err != nil {
-		Log.Error("Error broker send:", slog.String("err", err.Error()))
-		//storage.Close()
-		//return
+	} else {
+		err = kofd_updater_services.SendToNats(cfg, Log, messages)
+		if err != nil {
+			Log.Error("Error broker send:", slog.String("err", err.Error()))
+		}
 	}
 
 	err = pgxTransaction.Commit(ctx)
@@ -142,5 +139,6 @@ func main() {
 	}
 
 	storage.Close()
+	Log.Info("=== end kofd_updater ===")
 
 }

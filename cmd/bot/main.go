@@ -23,7 +23,7 @@ func main() {
 
 	cfg := config.Mustload(configEnv)
 	Log := logger.InitLogger(cfg.ENV)
-	Log.Info("============ start bot ============")
+	Log.Info("=== start bot ===")
 
 	Log.Info("load config: ")
 	cfgBytes, err := utils.PrintAsJSON(cfg)
@@ -75,5 +75,5 @@ func main() {
 
 	time.Sleep(cfg.BOT_TIMEOUT / 2) // timeout)
 	Log.Warn("bot, http server, nats stopped")
-	Log.Info("============ end bot ============")
+	Log.Info("=== end bot ===")
 }
