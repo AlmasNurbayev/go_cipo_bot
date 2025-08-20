@@ -70,11 +70,10 @@ func main() {
 	<-ctx.Done()
 	Log.Warn("received signal DONE signal")
 	fmt.Println("received signal DONE signal")
-
-	time.Sleep(cfg.BOT_TIMEOUT / 2) // timeout)
-
 	botApp.Stop()
 	httpApp.Stop()
+
+	time.Sleep(cfg.BOT_TIMEOUT / 2) // timeout)
 	Log.Warn("bot, http server, nats stopped")
 	Log.Info("============ end bot ============")
 }
