@@ -51,3 +51,18 @@ func (s *Storage) ListActiveTokens(ctx context.Context,
 	}
 	return tokens, nil
 }
+
+func (s *Storage) DeleteOldTokens(ctx context.Context) error {
+
+	op := "storage.DeleteOldTokens"
+	log := s.log.With(slog.String("op", op))
+
+	query := `DELETE FROM tokens WHERE created_at < NOW() - INTERVAL '2 hour';`
+
+	_, err := s.Db.Exec(ctx, query)
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return err
+	}
+	return nil
+}

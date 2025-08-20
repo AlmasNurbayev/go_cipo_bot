@@ -125,6 +125,12 @@ func main() {
 		}
 	}
 
+	// удаляем старые токены
+	err = storage.DeleteOldTokens(ctx)
+	if err != nil {
+		Log.Warn("error: ", slog.String("err", err.Error()))
+	}
+
 	err = pgxTransaction.Commit(ctx)
 	if err != nil {
 		Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
