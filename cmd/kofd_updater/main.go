@@ -68,7 +68,7 @@ func main() {
 	storage, err := storage.NewStorage(ctx, dsn, Log)
 	if err != nil {
 		Log.Error("not init postgres storage")
-		panic(err)
+		return
 	}
 
 	pgxTransaction, err := storage.Db.Begin(storage.Ctx)
@@ -118,12 +118,6 @@ func main() {
 	// отправляем операции в брокер
 	if len(messages) == 0 {
 		Log.Info("no new updates for users")
-		err = pgxTransaction.Commit(ctx)
-		if err != nil {
-			Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
-		} else {
-			Log.Info("DB changes committed")
-		}
 	} else {
 		err = kofd_updater_services.SendToNats(cfg, Log, messages)
 		if err != nil {
@@ -139,6 +133,6 @@ func main() {
 	}
 
 	storage.Close()
-	Log.Info("=== end kofd_updater ===")
+	Log.Info("=== success end kofd_updater ===")
 
 }
