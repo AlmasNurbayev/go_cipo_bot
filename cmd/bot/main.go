@@ -76,4 +76,5 @@ func main() {
 	botApp.Stop()
 	httpApp.Stop()
 	Log.Warn("bot, http server, nats stopped")
+	Log.Info("============ end bot ============")
 }

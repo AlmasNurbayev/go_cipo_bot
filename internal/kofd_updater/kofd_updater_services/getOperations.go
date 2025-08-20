@@ -66,7 +66,7 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 		for _, item := range list.Data {
 
 			if slices.Contains(existsIds, item.Id) {
-				log.Info("transaction already exists, skip for get cheque", slog.String("id", item.Id))
+				log.Debug("transaction already exists, skip for get cheque", slog.String("id", item.Id))
 				continue // если транзакция уже есть, пропускаем
 			}
 

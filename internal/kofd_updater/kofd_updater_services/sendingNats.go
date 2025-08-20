@@ -73,8 +73,8 @@ func SendToNats(cfg *config.Config, Log1 *slog.Logger,
 			return err
 		}
 	}
-	//log1.Info("All messages published successfully", "count", len(messages))
-	log.Info("Message published", "subject", subject)
+	log.Info("All messages published to NATS successfully", "count", len(messages))
+	//log.Info("Message published", "subject", subject)
 	defer nc.Close()
 	return nil
 }
