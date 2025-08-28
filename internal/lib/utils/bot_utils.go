@@ -218,6 +218,11 @@ func GetTypeOperationText(oper modelsI.TransactionEntity) string {
 		case 0:
 			return "Закрытие смены"
 		}
+	case 3:
+		switch oper.Subtype.Int64 {
+		case 1:
+			return "X-отчет"
+		}
 	case 6:
 		switch oper.Subtype.Int64 {
 		case 0:
