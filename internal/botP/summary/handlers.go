@@ -290,7 +290,7 @@ func summaryGetCheckHandler(storage storageI,
 }
 
 func summaryFullTextCheckHandler(storage storageI,
-	log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
+	log1 *slog.Logger) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "summary.summaryFullCheckHandler"
 		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),

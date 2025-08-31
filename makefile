@@ -14,8 +14,8 @@ updater2023-01:
 	go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2023-01-01" -lastDate "2023-01-31" -bin "800727301256"
 
 
-updater30:
-	go run cmd/kofd_updater/main.go -configEnv "./.env" -days 10 -bin "800727301256" 
+updater32:
+	go run cmd/kofd_updater/main.go -configEnv "./.env" -days 32 -bin "800727301256" 
 
 updater10:
 	go run cmd/kofd_updater/main.go -configEnv "./.env" -days 10 -bin "800727301256" 

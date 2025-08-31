@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/charts"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/middleware"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/summary"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
@@ -56,6 +57,7 @@ func NewApp(ctx context.Context, cfg *config.Config, log *slog.Logger) (*BotApp,
 
 func (b *BotApp) Run() {
 	summary.Init(b.Bot, b.Storage, b.Log, b.Cfg)
+	charts.Init(b.Bot, b.Storage, b.Log, b.Cfg)
 	b.Log.Info("bot try started", slog.String("port", "8443"))
 	b.Bot.Start(b.Ctx)
 

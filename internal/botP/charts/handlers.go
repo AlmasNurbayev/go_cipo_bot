@@ -1,8 +1,8 @@
 package charts
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"log/slog"
 
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
@@ -21,20 +21,52 @@ func chartsHandler(storage *storage.Storage, log1 *slog.Logger) bot.HandlerFunc 
 		//return
 		log.Info("charts called button", slog.String("text", msg.Text))
 
-		if msg.Text == "график 30 дней прошлое" {
-			bytes, err := charts30Days(ctx, storage, log)
+		if msg.Text == "график 30 дней" {
+			fileBytes, err := charts30Days(ctx, storage, log)
 			if err != nil {
 				log.Error("error generating chart", slog.String("err", err.Error()))
-				_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: update.Message.Chat.ID,
 					Text:   "Ошибка генерации графика",
 				})
 				if err != nil {
-					log.Error("error sending message", slog.String("err", err.Error()))
+					log.Error("error sending error", slog.String("err", err.Error()))
 				}
 				return
 			}
-			fmt.Print(string(bytes))
+
+			_, err = b.SendPhoto(ctx, &bot.SendPhotoParams{
+				ChatID:  update.Message.Chat.ID,
+				Caption: "График за последние 30 дней",
+				Photo:   &models.InputFileUpload{Filename: "chart30days.png", Data: bytes.NewReader(fileBytes)},
+			})
+			if err != nil {
+				log.Error("error sending file", slog.String("err", err.Error()))
+			}
+		}
+
+		if msg.Text == "график этот год" {
+			fileBytes, err := chartsCurrentYear(ctx, storage, log)
+			if err != nil {
+				log.Error("error generating chart", slog.String("err", err.Error()))
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: update.Message.Chat.ID,
+					Text:   "Ошибка генерации графика",
+				})
+				if err != nil {
+					log.Error("error sending error", slog.String("err", err.Error()))
+				}
+				return
+			}
+
+			_, err = b.SendPhoto(ctx, &bot.SendPhotoParams{
+				ChatID:  update.Message.Chat.ID,
+				Caption: "График за последние 12 месяцев",
+				Photo:   &models.InputFileUpload{Filename: "chart12month.png", Data: bytes.NewReader(fileBytes)},
+			})
+			if err != nil {
+				log.Error("error sending file", slog.String("err", err.Error()))
+			}
 		}
 
 	}

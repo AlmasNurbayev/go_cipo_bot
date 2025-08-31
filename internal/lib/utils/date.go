@@ -2,8 +2,11 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
 // получаем границы периода из текста формата "2025-01-01_2025-01-31"
@@ -137,20 +140,115 @@ func GetPeriodByMode(mode string) (time.Time, time.Time, error) {
 
 // GetLastDaysPeriod возвращает начало и конец периода, массив с датами последних N дней
 // где N - количество дней, переданное в параметре days
-// например, для days=3 вернет [[2023, 10, 1],	[2023, 10, 2], [2023, 10, 3]]
-func GetLastDaysPeriod(days int) (time.Time, time.Time, [][]int, error) {
+func GetLastDaysPeriod(days int) (time.Time, time.Time, []models.TransactionsByDays, error) {
 
-	daysArr := make([][]int, days)
 	now := time.Now()
 	// начало суток (N-1) дней назад
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).
 		AddDate(0, 0, -days+1)
 	// конец сегодняшнего дня
 	end := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, int(time.Second-time.Nanosecond), now.Location())
+	var dataDays []models.TransactionsByDays
 	for i := 0; i < days; i++ {
 		d := now.AddDate(0, 0, -i) // от текущей даты назад
-		daysArr[i] = []int{d.Year(), int(d.Month()), d.Day()}
+		dataDays = append(dataDays, models.TransactionsByDays{
+			Date:  time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location()),
+			Day:   d.Day(),
+			Month: int(d.Month()),
+			Year:  d.Year(),
+			Count: 0,
+			Sum:   0,
+		})
 	}
 
-	return start, end, daysArr, nil
+	return start, end, dataDays, nil
+}
+
+// GetLastDaysPeriodPrevYear возвращает начало и конец периода год назад, массив с датами этих дней
+// где N - количество дней, переданное в параметре days
+func GetLastDaysPeriodPrevYear(days int) (time.Time, time.Time, []models.TransactionsByDays, error) {
+
+	now := time.Now()
+	// начало суток (N-1) дней назад
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).
+		AddDate(0, 0, -days+1)
+	// конец сегодняшнего дня
+	end := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, int(time.Second-time.Nanosecond), now.Location())
+
+	// сдвигаем на год назад
+	start = start.AddDate(-1, 0, 0)
+	end = end.AddDate(-1, 0, 0)
+
+	var dataDays []models.TransactionsByDays
+	for i := 0; i < days; i++ {
+		d := now.AddDate(-1, 0, -i) // от текущей даты назад
+		dataDays = append(dataDays, models.TransactionsByDays{
+			Date:  time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location()),
+			Day:   d.Day(),
+			Month: int(d.Month()),
+			Year:  d.Year(),
+			Count: 0,
+			Sum:   0,
+		})
+	}
+
+	return start, end, dataDays, nil
+}
+
+// GetCurrentYearPeriod возвращает начало и конец периода, массив с месяцами текуцщего года
+// где N - количество дней, переданное в параметре monthes
+func GetCurrentYearPeriod(monthes int) (time.Time, time.Time, []models.TransactionsByDays, error) {
+
+	now := time.Now()
+	// начало этого года
+	start := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, now.Location())
+
+	// конец этого года
+	end := time.Date(now.Year()+1, time.January, 1, 0, 0, 0, 0, now.Location()).
+		Add(-time.Nanosecond)
+
+	var dataMonthes []models.TransactionsByDays
+	year := now.Year()
+	for m := now.Month(); m >= time.January; m-- {
+		d := time.Date(year, m, 1, 0, 0, 0, 0, now.Location())
+		dataMonthes = append(dataMonthes, models.TransactionsByDays{
+			Date:  time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location()),
+			Day:   d.Day(),
+			Month: int(d.Month()),
+			Year:  d.Year(),
+			Count: 0,
+			Sum:   0,
+		})
+	}
+	return start, end, dataMonthes, nil
+}
+
+// GetPrevYearPeriod возвращает начало и конец периода, массив с месяцами прошлого года
+// где N - количество дней, переданное в параметре monthes
+func GetPrevYearPeriod(monthes int) (time.Time, time.Time, []models.TransactionsByDays, error) {
+
+	now := time.Now()
+	// Начало прошлого года
+	start := time.Date(now.Year()-1, time.January, 1, 0, 0, 0, 0, now.Location())
+
+	// Конец прошлого года (31 декабря 23:59:59.999999999)
+	end := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, now.Location()).
+		Add(-time.Nanosecond)
+
+	var dataMonthes []models.TransactionsByDays
+	year := now.AddDate(-1, 0, 0).Year()
+	for m := now.Month(); m >= time.January; m-- {
+		d := time.Date(year, m, 1, 0, 0, 0, 0, now.Location())
+		dataMonthes = append(dataMonthes, models.TransactionsByDays{
+			Date:  time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location()),
+			Day:   d.Day(),
+			Month: int(d.Month()),
+			Year:  d.Year(),
+			Count: 0,
+			Sum:   0,
+		})
+	}
+	fmt.Println("dataMonthes: ", dataMonthes)
+
+	return start, end, dataMonthes, nil
 }
