@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
@@ -98,6 +99,18 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 				if err != nil {
 					log.Error("List kassa error", slog.Any("err", err))
 				}
+				//var markups models.InlineKeyboardMarkup
+				var inlineKeyboard [][]models.InlineKeyboardButton
+				var keyboardButtons []models.InlineKeyboardButton
+				for index, tr := range data.Transactions {
+					keyboardButtons = append(keyboardButtons, models.InlineKeyboardButton{
+						Text:         "чек " + strconv.Itoa(index+1),
+						CallbackData: "getCheck_" + strconv.Itoa(int(tr.Id)),
+					})
+				}
+				markups := models.InlineKeyboardMarkup{
+					InlineKeyboard: append(inlineKeyboard, keyboardButtons),
+				}
 				text := "Новые транзакции: " + "\n" + utils.ConvertNewOperationToMessageText(data, kassas)
 				isDisabled := true
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -107,6 +120,7 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 					LinkPreviewOptions: &models.LinkPreviewOptions{
 						IsDisabled: &isDisabled,
 					},
+					ReplyMarkup: &markups,
 				})
 				if err != nil {
 					log.Error("Send message error", slog.Any("err", err))

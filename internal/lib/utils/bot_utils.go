@@ -185,10 +185,14 @@ func ConvertNewOperationToMessageText(message modelsI.MessagesType,
 		if kassa != -1 {
 			kassaString = kassas[kassa].Name_kassa
 		}
+		typeOperation := GetTypeOperationText(tx)
+		if typeOperation == "Возврат" {
+			typeOperation = "⚠️Возврат"
+		}
 
 		sb.WriteString("<b>" + kassaString + " №" + strconv.FormatInt(tx.Id, 10) + " от " +
 			tx.Operationdate.Time.Format("15:04 02.01.2006") + " " +
-			GetTypeOperationText(tx) + " " +
+			typeOperation + " " +
 			GetTypePaymentText(tx) + " " + sumStr + "</b>" + "\n")
 
 		for _, item := range tx.ChequeJSON {
