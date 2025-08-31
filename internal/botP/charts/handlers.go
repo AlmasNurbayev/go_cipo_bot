@@ -49,7 +49,7 @@ func chartsHandler(storage *storage.Storage, log1 *slog.Logger) bot.HandlerFunc 
 		}
 
 		if msg.Text == "график этот год" {
-			fileBytes, err := chartsCurrentYear(ctx, storage, log)
+			fileBytes, sumCurrent, sumPrev, err := chartsCurrentYear(ctx, storage, log)
 			if err != nil {
 				log.Error("error generating chart", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -63,9 +63,11 @@ func chartsHandler(storage *storage.Storage, log1 *slog.Logger) bot.HandlerFunc 
 			}
 
 			_, err = b.SendPhoto(ctx, &bot.SendPhotoParams{
-				ChatID:  update.Message.Chat.ID,
-				Caption: "График за последние 12 месяцев",
-				Photo:   &models.InputFileUpload{Filename: "chart12month.png", Data: bytes.NewReader(fileBytes)},
+				ChatID: update.Message.Chat.ID,
+				Caption: "График за последние 12 месяцев: \n" +
+					" • текущий год " + utils.FormatNumber(sumCurrent) + "\n" +
+					" • прошлый год " + utils.FormatNumber(sumPrev) + "\n",
+				Photo: &models.InputFileUpload{Filename: "chart12month.png", Data: bytes.NewReader(fileBytes)},
 			})
 			if err != nil {
 				log.Error("error sending file", slog.String("err", err.Error()))

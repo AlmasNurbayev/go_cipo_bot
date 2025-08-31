@@ -139,23 +139,26 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 
 }
 
-func chartsCurrentYear(ctx context.Context, storage *storage.Storage, log1 *slog.Logger) ([]byte, error) {
+func chartsCurrentYear(ctx context.Context, storage *storage.Storage,
+	log1 *slog.Logger) ([]byte, float64, float64, error) {
 	op := "charts.charts12Month"
 	log := log1.With(slog.String("op", op))
 
 	monthes := 12
+	sumCurrent := 0.0
+	sumPrev := 0.0
 
 	// получаем границы и массив-шаблон с датами
 	start, end, dataMonthes, err := utils.GetCurrentYearPeriod(monthes)
 	if err != nil {
 		log.Error("error getting last days period", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 
 	data, err := storage.ListTransactionsByDate(ctx, start, end)
 	if err != nil {
 		log.Error("error listing transactions by date", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 	for index, row := range dataMonthes {
 		for _, d := range data {
@@ -167,8 +170,10 @@ func chartsCurrentYear(ctx context.Context, storage *storage.Storage, log1 *slog
 				switch d.Subtype.Int64 {
 				case 2:
 					dataMonthes[index].Sum += d.Sum_operation.Float64
+					sumCurrent += d.Sum_operation.Float64
 				case 3:
 					dataMonthes[index].Sum -= d.Sum_operation.Float64
+					sumCurrent -= d.Sum_operation.Float64
 				}
 			}
 		}
@@ -178,12 +183,12 @@ func chartsCurrentYear(ctx context.Context, storage *storage.Storage, log1 *slog
 	startPrev, endPrev, dataMonthesPrev, err := utils.GetPrevYearPeriod(monthes)
 	if err != nil {
 		log.Error("error getting last days period", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 	dataPrev, err := storage.ListTransactionsByDate(ctx, startPrev, endPrev)
 	if err != nil {
 		log.Error("error listing transactions by date", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 	for index, row := range dataMonthesPrev {
 		for _, d := range dataPrev {
@@ -195,8 +200,10 @@ func chartsCurrentYear(ctx context.Context, storage *storage.Storage, log1 *slog
 				switch d.Subtype.Int64 {
 				case 2:
 					dataMonthesPrev[index].Sum += d.Sum_operation.Float64
+					sumPrev += d.Sum_operation.Float64
 				case 3:
 					dataMonthesPrev[index].Sum -= d.Sum_operation.Float64
+					sumPrev -= d.Sum_operation.Float64
 				}
 			}
 		}
@@ -244,15 +251,15 @@ func chartsCurrentYear(ctx context.Context, storage *storage.Storage, log1 *slog
 	err = p.BarChart(opt)
 	if err != nil {
 		log.Error("error creating bar chart", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 
 	buf, err := p.Bytes()
 	if err != nil {
 		log.Error("error creating bar chart", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 
-	return buf, nil
+	return buf, sumCurrent, sumPrev, nil
 
 }
