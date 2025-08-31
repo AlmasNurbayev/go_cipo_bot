@@ -71,7 +71,7 @@ func getSummaryDate(mode string, storage storageI,
 	return result, err
 }
 
-func getAllChecks(mode string, storage storageI,
+func getAllChecksService(mode string, storage storageI,
 	log1 *slog.Logger, cfg *config.Config) (string, models.InlineKeyboardMarkup, error) {
 
 	op := "summary.getAllChecks"
@@ -153,7 +153,7 @@ func getAllChecks(mode string, storage storageI,
 	return sb.String(), markups, nil
 }
 
-func getAnalytics(mode string, storage storageI,
+func getAnalyticsService(mode string, storage storageI,
 	log1 *slog.Logger, cfg *config.Config) (string, *models.InlineKeyboardMarkup, error) {
 
 	op := "summary.getAnalytics"
@@ -273,7 +273,7 @@ func getAnalytics(mode string, storage storageI,
 	return sb.String(), markups, nil
 }
 
-func getOneCheck(queryString string, storage storageI,
+func getOneCheckService(queryString string, storage storageI,
 	log1 *slog.Logger, cfg *config.Config) (*[]models.InputMedia, string, error) {
 
 	op := "summary.getOneCheck"
@@ -356,4 +356,34 @@ func getOneCheck(queryString string, storage storageI,
 	} else {
 		return &inputMedia, "", nil
 	}
+}
+
+func getFullTextCheckService(queryString string, storage storageI,
+	log1 *slog.Logger) (string, error) {
+
+	op := "summary.getAllChecks"
+	log := log1.With(slog.String("op", op))
+
+	var checkID int64
+
+	queryArr := strings.Split(queryString, "_")
+	if len(queryArr) < 2 {
+		return "", errors.New("неверный формат запроса чека, должен быть в формате: getFullTextCheck_1234567890")
+	}
+	checkID, err := strconv.ParseInt(queryArr[1], 10, 64)
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return "", err
+	}
+
+	log.Info("queryString", slog.String("queryString", queryString))
+
+	data, err := storage.GetTransactionById(context.Background(), checkID)
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return "", err
+	}
+	result := data.Cheque.String
+
+	return result, nil
 }

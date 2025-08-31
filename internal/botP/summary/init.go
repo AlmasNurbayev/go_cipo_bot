@@ -22,6 +22,7 @@ func Init(b *bot.Bot, storage *storage.Storage,
 
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "summary_", bot.MatchTypePrefix, summaryCallbackHandler(storage, log, cfg))
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "getCheck_", bot.MatchTypePrefix, summaryGetCheckHandler(storage, log, cfg))
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "getFullTextCheck_", bot.MatchTypePrefix, summaryFullTextCheckHandler(storage, log, cfg))
 }
 
 func initKeyboard(ctx context.Context, b *bot.Bot, update *models.Update) {

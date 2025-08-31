@@ -204,9 +204,7 @@ func ConvertNewOperationToMessageText(tx modelsI.TransactionEntity,
 		)
 	}
 	sb.WriteString("\n")
-	sb.WriteString(`Полный текст чека <span class="tg-spoiler">` + tx.Cheque.String + `</span>`)
-	//result = append(result, sb.String())
-	//}
+	//sb.WriteString(`Полный текст чека <span class="tg-spoiler">` + tx.Cheque.String + `</span>`)
 	return sb.String()
 }
 

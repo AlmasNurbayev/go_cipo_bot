@@ -152,7 +152,7 @@ func summaryCallbackHandler(storage storageI,
 		}
 
 		if strings.Contains(cb.Data, "summary_allChecks_") {
-			response, markups, err := getAllChecks(cb.Data, storage, log, cfg)
+			response, markups, err := getAllChecksService(cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -179,7 +179,7 @@ func summaryCallbackHandler(storage storageI,
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 			}
-			response, markups, err := getAnalytics(cb.Data, storage, log, cfg)
+			response, markups, err := getAnalyticsService(cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -226,7 +226,7 @@ func summaryGetCheckHandler(storage storageI,
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 		}
-		inputMedia, stringResponce, err := getOneCheck(cb.Data, storage, log, cfg)
+		inputMedia, stringResponce, err := getOneCheckService(cb.Data, storage, log, cfg)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -244,11 +244,22 @@ func summaryGetCheckHandler(storage storageI,
 				ChatID:    cb.Message.Message.Chat.ID,
 				Text:      stringResponce,
 				ParseMode: models.ParseModeHTML,
+				ReplyMarkup: &models.InlineKeyboardMarkup{
+					InlineKeyboard: [][]models.InlineKeyboardButton{
+						{
+							{
+								Text:         "Полный текст чека",
+								CallbackData: "getFullTextCheck_" + strings.Split(cb.Data, "_")[1],
+							},
+						},
+					},
+				},
 			})
 			if err != nil {
 				log.Error("error sending message", slog.String("err", err.Error()))
 			}
 		} else {
+			// если есть фото, отправляем медиа группой
 			_, err = b.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
 				ChatID: cb.Message.Message.Chat.ID,
 				Media:  *inputMedia,
@@ -256,6 +267,65 @@ func summaryGetCheckHandler(storage storageI,
 			if err != nil {
 				log.Error("error sending media group", slog.String("err", err.Error()))
 			}
+			// так как нельзя отправить кнопку к МедиаГруппе, то отправляем отдельным сообщением
+			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: cb.Message.Message.Chat.ID,
+				Text:   "Полный текст чека",
+				ReplyMarkup: &models.InlineKeyboardMarkup{
+					InlineKeyboard: [][]models.InlineKeyboardButton{
+						{
+							{
+								Text:         "Открыть",
+								CallbackData: "getFullTextCheck_" + strings.Split(cb.Data, "_")[1],
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
 		}
+	}
+}
+
+func summaryFullTextCheckHandler(storage storageI,
+	log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
+	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
+		op := "summary.summaryFullCheckHandler"
+		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
+			slog.String("user name", update.CallbackQuery.From.Username), slog.String("test", "test"))
+		if update.CallbackQuery == nil {
+			return
+		}
+		cb := update.CallbackQuery
+		_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			ShowAlert:       false,
+		})
+		if err != nil {
+			log.Error("error answering callback query", slog.String("err", err.Error()))
+		}
+
+		response, err := getFullTextCheckService(cb.Data, storage, log)
+		if err != nil {
+			log.Error("error: ", slog.String("err", err.Error()))
+			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: cb.Message.Message.Chat.ID,
+				Text:   "Ошибка получения данных",
+			})
+			if err != nil {
+				log.Error("error sending message", slog.String("err", err.Error()))
+			}
+		}
+		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:    cb.Message.Message.Chat.ID,
+			Text:      response,
+			ParseMode: models.ParseModeHTML,
+		})
+		if err != nil {
+			log.Error("error sending message", slog.String("err", err.Error()))
+		}
+
 	}
 }

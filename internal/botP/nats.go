@@ -103,7 +103,7 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 				for _, tr := range data.Transactions {
 					var keyboardButtons []models.InlineKeyboardButton
 					keyboardButtons = append(keyboardButtons, models.InlineKeyboardButton{
-						Text:         "чек " + strconv.Itoa(int(tr.Id)) + " / " + utils.FormatNumber(tr.Sum_operation.Float64),
+						Text:         "чек №" + strconv.Itoa(int(tr.Id)) + " / " + utils.FormatNumber(tr.Sum_operation.Float64) + "₸",
 						CallbackData: "getCheck_" + strconv.Itoa(int(tr.Id)),
 					})
 					markups := models.InlineKeyboardMarkup{
