@@ -173,38 +173,40 @@ func ConvertTransToTotal(transactions []modelsI.TransactionEntity,
 	return result
 }
 
-func ConvertNewOperationToMessageText(message modelsI.MessagesType,
+func ConvertNewOperationToMessageText(tx modelsI.TransactionEntity,
 	kassas []modelsI.KassaEntity) string {
+
+	//for _, tx := range message.Transactions {
 	var sb strings.Builder
-	for _, tx := range message.Transactions {
-		sumStr := FormatNumber(tx.Sum_operation.Float64)
+	sumStr := FormatNumber(tx.Sum_operation.Float64)
 
-		kassa := slices.IndexFunc(kassas, func(k modelsI.KassaEntity) bool { return k.Id == tx.Kassa_id })
-		kassaString := ""
+	kassa := slices.IndexFunc(kassas, func(k modelsI.KassaEntity) bool { return k.Id == tx.Kassa_id })
+	kassaString := ""
 
-		if kassa != -1 {
-			kassaString = kassas[kassa].Name_kassa
-		}
-		typeOperation := GetTypeOperationText(tx)
-		if typeOperation == "Возврат" {
-			typeOperation = "⚠️Возврат"
-		}
-
-		sb.WriteString("<b>" + kassaString + " №" + strconv.FormatInt(tx.Id, 10) + " от " +
-			tx.Operationdate.Time.Format("15:04 02.01.2006") + " " +
-			typeOperation + " " +
-			GetTypePaymentText(tx) + " " + sumStr + "</b>" + "\n")
-
-		for _, item := range tx.ChequeJSON {
-			sb.WriteString(
-				`<a href="` + item.MainImageURL.String + `">` +
-					"• " + item.Name + " (" + item.Size.String + ") ₸ " + FormatNumber(item.Sum) +
-					"</a>" + "\n",
-			)
-		}
-		sb.WriteString("\n")
-
+	if kassa != -1 {
+		kassaString = kassas[kassa].Name_kassa
 	}
+	typeOperation := GetTypeOperationText(tx)
+	if typeOperation == "Возврат" {
+		typeOperation = "⚠️Возврат"
+	}
+
+	sb.WriteString("<b>" + kassaString + " №" + strconv.FormatInt(tx.Id, 10) + " от " +
+		tx.Operationdate.Time.Format("15:04 02.01.2006") + " " +
+		typeOperation + " " +
+		GetTypePaymentText(tx) + " " + sumStr + "</b>" + "\n")
+
+	for _, item := range tx.ChequeJSON {
+		sb.WriteString(
+			`<a href="` + item.MainImageURL.String + `">` +
+				"• " + item.Name + " (" + item.Size.String + ") ₸ " + FormatNumber(item.Sum) +
+				"</a>" + "\n",
+		)
+	}
+	sb.WriteString("\n")
+	sb.WriteString(`Полный текст чека <span class="tg-spoiler">` + tx.Cheque.String + `</span>`)
+	//result = append(result, sb.String())
+	//}
 	return sb.String()
 }
 
