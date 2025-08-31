@@ -64,7 +64,7 @@ func chartsHandler(storage *storage.Storage, log1 *slog.Logger) bot.HandlerFunc 
 
 			_, err = b.SendPhoto(ctx, &bot.SendPhotoParams{
 				ChatID: update.Message.Chat.ID,
-				Caption: "График за последние 12 месяцев: \n" +
+				Caption: "График этот год': \n" +
 					" • текущий год " + utils.FormatNumber(sumCurrent) + "\n" +
 					" • прошлый год " + utils.FormatNumber(sumPrev) + "\n",
 				Photo: &models.InputFileUpload{Filename: "chart12month.png", Data: bytes.NewReader(fileBytes)},
