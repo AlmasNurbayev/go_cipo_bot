@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -248,7 +247,5 @@ func GetPrevYearPeriod(monthes int) (time.Time, time.Time, []models.Transactions
 			Sum:   0,
 		})
 	}
-	fmt.Println("dataMonthes: ", dataMonthes)
-
 	return start, end, dataMonthes, nil
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -22,7 +23,7 @@ func chartsHandler(storage *storage.Storage, log1 *slog.Logger) bot.HandlerFunc 
 		log.Info("charts called button", slog.String("text", msg.Text))
 
 		if msg.Text == "график 30 дней" {
-			fileBytes, err := charts30Days(ctx, storage, log)
+			fileBytes, sumCurrent, sumPrev, err := charts30Days(ctx, storage, log)
 			if err != nil {
 				log.Error("error generating chart", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -36,9 +37,11 @@ func chartsHandler(storage *storage.Storage, log1 *slog.Logger) bot.HandlerFunc 
 			}
 
 			_, err = b.SendPhoto(ctx, &bot.SendPhotoParams{
-				ChatID:  update.Message.Chat.ID,
-				Caption: "График за последние 30 дней",
-				Photo:   &models.InputFileUpload{Filename: "chart30days.png", Data: bytes.NewReader(fileBytes)},
+				ChatID: update.Message.Chat.ID,
+				Caption: "График за последние 30 дней: \n" +
+					" • сейчас " + utils.FormatNumber(sumCurrent) + "\n" +
+					" • год назад " + utils.FormatNumber(sumPrev) + "\n",
+				Photo: &models.InputFileUpload{Filename: "chart30days.png", Data: bytes.NewReader(fileBytes)},
 			})
 			if err != nil {
 				log.Error("error sending file", slog.String("err", err.Error()))

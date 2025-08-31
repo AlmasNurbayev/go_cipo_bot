@@ -11,7 +11,9 @@ import (
 	"github.com/go-analyze/charts"
 )
 
-func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logger) ([]byte, error) {
+// возвращает данные за последние 30 дней и год назад в виде
+// массив байтов PNG, сумму за последние 30 дней, сумму 30 дней за год назад
+func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logger) ([]byte, float64, float64, error) {
 	op := "charts.charts30Days"
 	log := log1.With(slog.String("op", op))
 
@@ -21,14 +23,15 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 	start, end, dataDays, err := utils.GetLastDaysPeriod(days)
 	if err != nil {
 		log.Error("error getting last days period", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 
 	data, err := storage.ListTransactionsByDate(ctx, start, end)
 	if err != nil {
 		log.Error("error listing transactions by date", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
+	sumCurrent := 0.0
 	for index, row := range dataDays {
 		for _, d := range data {
 			if d.Type_operation != 1 {
@@ -39,8 +42,10 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 				switch d.Subtype.Int64 {
 				case 2:
 					dataDays[index].Sum += d.Sum_operation.Float64
+					sumCurrent += d.Sum_operation.Float64
 				case 3:
 					dataDays[index].Sum -= d.Sum_operation.Float64
+					sumCurrent -= d.Sum_operation.Float64
 				}
 			}
 		}
@@ -50,13 +55,14 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 	startPrev, endPrev, dataDaysPrev, err := utils.GetLastDaysPeriodPrevYear(days)
 	if err != nil {
 		log.Error("error getting last days period", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 	dataPrev, err := storage.ListTransactionsByDate(ctx, startPrev, endPrev)
 	if err != nil {
 		log.Error("error listing transactions by date", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
+	sumPrev := 0.0
 	for index, row := range dataDaysPrev {
 		for _, d := range dataPrev {
 			if d.Type_operation != 1 {
@@ -67,8 +73,10 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 				switch d.Subtype.Int64 {
 				case 2:
 					dataDaysPrev[index].Sum += d.Sum_operation.Float64
+					sumPrev += d.Sum_operation.Float64
 				case 3:
 					dataDaysPrev[index].Sum -= d.Sum_operation.Float64
+					sumPrev -= d.Sum_operation.Float64
 				}
 			}
 		}
@@ -76,21 +84,24 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 
 	values := make([][]float64, 2)
 	var labels []string
-	for i := range dataDays {
+	for i := len(dataDays) - 1; i >= 0; i-- {
 		values[0] = append(values[0], dataDays[i].Sum)
 		labels = append(labels, strconv.Itoa(dataDays[i].Day))
 	}
-	for i := range dataDaysPrev {
+	for i := len(dataDaysPrev) - 1; i >= 0; i-- {
 		values[1] = append(values[1], dataDaysPrev[i].Sum)
 	}
 
-	opt := charts.NewBarChartOptionWithData(values)
-	opt.XAxis.Labels = labels
+	falseShow := false
+	opt := charts.NewHorizontalBarChartOptionWithData(values)
+	opt.Title.Text = "Крайние 30 дней, сейчас и год назад"
+	opt.YAxis.Labels = labels
 	opt.Legend = charts.LegendOption{
 		SeriesNames: []string{
-			"эти", "год назад",
+			dataDays[0].Date.Format("2006.01"), dataDaysPrev[0].Date.Format("2006.01"),
 		},
-		Offset: charts.OffsetRight,
+		Offset:       charts.OffsetRight,
+		OverlayChart: &falseShow,
 	}
 	opt.SeriesList[0].MarkLine.AddLines(charts.SeriesMarkTypeAverage)
 	opt.SeriesList[1].MarkLine.AddLines(charts.SeriesMarkTypeAverage)
@@ -105,26 +116,26 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 	show := true
 	opt.SeriesList[0].Label.Show = &show
 	opt.SeriesList[1].Label.Show = &show
-	opt.BarWidth = 10
+	opt.BarHeight = 10
 
 	p := charts.NewPainter(charts.PainterOptions{
-		Width:  900,
-		Height: 600,
+		Width:  600,
+		Height: 1000,
 	})
 
-	err = p.BarChart(opt)
+	err = p.HorizontalBarChart(opt)
 	if err != nil {
 		log.Error("error creating bar chart", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 
 	buf, err := p.Bytes()
 	if err != nil {
 		log.Error("error creating bar chart", slog.String("err", err.Error()))
-		return nil, err
+		return nil, 0, 0, err
 	}
 
-	return buf, nil
+	return buf, sumCurrent, sumPrev, nil
 
 }
 
@@ -202,6 +213,7 @@ func chartsCurrentYear(ctx context.Context, storage *storage.Storage, log1 *slog
 	}
 
 	opt := charts.NewBarChartOptionWithData(values)
+	opt.Title.Text = "Крайние месяцы, этот год и предыдущий"
 	opt.XAxis.Labels = labels
 	opt.Legend = charts.LegendOption{
 		SeriesNames: []string{
