@@ -99,18 +99,23 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 				if err != nil {
 					log.Error("List kassa error", slog.Any("err", err))
 				}
-				//var markups models.InlineKeyboardMarkup
+				// формируем клавиатуру с кнопками чеков
 				var inlineKeyboard [][]models.InlineKeyboardButton
 				var keyboardButtons []models.InlineKeyboardButton
-				for index, tr := range data.Transactions {
+				for _, tr := range data.Transactions {
 					keyboardButtons = append(keyboardButtons, models.InlineKeyboardButton{
-						Text:         "чек " + strconv.Itoa(index+1),
+						Text:         "чек " + strconv.Itoa(int(tr.Id)) + " / " + utils.FormatNumber(tr.Sum_operation.Float64),
 						CallbackData: "getCheck_" + strconv.Itoa(int(tr.Id)),
 					})
+					if len(keyboardButtons) == 8 {
+						inlineKeyboard = append(inlineKeyboard, keyboardButtons)
+						keyboardButtons = []models.InlineKeyboardButton{}
+					}
 				}
 				markups := models.InlineKeyboardMarkup{
-					InlineKeyboard: append(inlineKeyboard, keyboardButtons),
+					InlineKeyboard: inlineKeyboard,
 				}
+				// формируем текст сообщения и отправляем
 				text := "Новые транзакции: " + "\n" + utils.ConvertNewOperationToMessageText(data, kassas)
 				isDisabled := true
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
