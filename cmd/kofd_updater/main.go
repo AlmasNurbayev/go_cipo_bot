@@ -106,7 +106,24 @@ func main() {
 		return
 	}
 
-	// определяем новые транзакции для каждого пользователя
+	// закрываем транзакцию после записи операций
+	err = pgxTransaction.Commit(ctx)
+	if err != nil {
+		Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
+	} else {
+		Log.Info("DB changes committed")
+	}
+
+	// открываем новую транзакцию
+	pgxTransaction, err = storage.Db.Begin(storage.Ctx)
+	if err != nil {
+		Log.Error("Not created transaction:", slog.String("err", err.Error()))
+		storage.Close()
+		return
+	}
+	storage.Tx = &pgxTransaction
+
+	// определяем новые операции для каждого пользователя
 	messages, err := kofd_updater_services.DetectNewOperations(ctx, storage, Log)
 	if err != nil {
 		Log.Error("error: ", slog.String("err", err.Error()))
@@ -135,6 +152,7 @@ func main() {
 		Log.Warn("error: ", slog.String("err", err.Error()))
 	}
 
+	// опять закрываем транзакцию
 	err = pgxTransaction.Commit(ctx)
 	if err != nil {
 		Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
