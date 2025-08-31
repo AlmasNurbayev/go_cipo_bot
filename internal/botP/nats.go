@@ -112,6 +112,9 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 						keyboardButtons = []models.InlineKeyboardButton{}
 					}
 				}
+				if len(keyboardButtons) > 0 {
+					inlineKeyboard = append(inlineKeyboard, keyboardButtons)
+				}
 				markups := models.InlineKeyboardMarkup{
 					InlineKeyboard: inlineKeyboard,
 				}
