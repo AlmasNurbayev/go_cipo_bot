@@ -212,6 +212,7 @@ func getAnalyticsService(mode string, storage storageI,
 				monthes = append(monthes, modelsI.Simple{Item: item.Operationdate.Time.Format("2006.01"), Count: 1, Sum: -cheque.Sum})
 				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Count: 1, Sum: -cheque.Sum})
 				kassas = append(kassas, modelsI.Simple{Item: item.Kassa_name.String, Count: 1, Sum: -cheque.Sum})
+				totalDiscount -= (cheque.NominalPrice - cheque.DiscountPrice) * float64(cheque.Qnt)
 			} else {
 				totalSum += cheque.Sum
 				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Count: 1, Sum: cheque.Sum})
@@ -219,8 +220,8 @@ func getAnalyticsService(mode string, storage storageI,
 				monthes = append(monthes, modelsI.Simple{Item: item.Operationdate.Time.Format("2006.01"), Count: 1, Sum: cheque.Sum})
 				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Count: 1, Sum: cheque.Sum})
 				kassas = append(kassas, modelsI.Simple{Item: item.Kassa_name.String, Count: 1, Sum: cheque.Sum})
+				totalDiscount += (cheque.NominalPrice - cheque.DiscountPrice) * float64(cheque.Qnt)
 			}
-			totalDiscount += (cheque.NominalPrice - cheque.DiscountPrice) * float64(cheque.Qnt)
 		}
 	}
 
