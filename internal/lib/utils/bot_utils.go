@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -191,8 +190,8 @@ func ConvertNewOperationToMessageText(tx modelsI.TransactionEntity,
 		typeOperation = "⚠️Возврат"
 	}
 
-	sb.WriteString("<b>" + kassaString + " №" + strconv.FormatInt(tx.Id, 10) + " от " +
-		tx.Operationdate.Time.Format("15:04 02.01.2006") + " " +
+	sb.WriteString("<b>" + kassaString + " " +
+		tx.Operationdate.Time.Format("15:04") + " - " +
 		typeOperation + " " +
 		GetTypePaymentText(tx) + " " + sumStr + "</b>" + "\n")
 
