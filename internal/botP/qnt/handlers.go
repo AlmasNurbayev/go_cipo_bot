@@ -24,6 +24,7 @@ func qntNowHandler(storage *storage.Storage, log1 *slog.Logger, cfg *config.Conf
 		text, err := qntNowService(log, cfg)
 		if err != nil {
 			log.Error("error qntNowService", slog.String("err", err.Error()))
+			text = "Ошибка получения остатков"
 		}
 
 		const telegramMaxLen = 4096

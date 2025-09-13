@@ -17,6 +17,7 @@ func qntNowService(log1 *slog.Logger, cfg *config.Config) (string, error) {
 	qntData, err := botP.CipoProductsOnlyQnt(cfg, log, "")
 	if err != nil {
 		log.Error("error on get qntData from Cipo backend: ", slog.String("err", err.Error()))
+		return "", err
 	}
 
 	groupData := transformQntData(qntData.Products)
