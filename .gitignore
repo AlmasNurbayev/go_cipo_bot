@@ -3,3 +3,4 @@
 ./config/config.yaml
 /.vscode/
 /volume_*
+/_volume_*

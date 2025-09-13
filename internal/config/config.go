@@ -38,6 +38,7 @@ type Config struct {
 
 	CIPO_PRODUCTS_URL string `env:"CIPO_PRODUCTS_URL"`
 	CIPO_IMAGES_URL   string `env:"CIPO_IMAGES_URL"`
+	CIPO_QNT_URL      string `env:"CIPO_QNT_URL"`
 
 	GSHEETS_KEY string `env:"GSHEETS_KEY"  json:"-"`
 	GSHEETS_ID  string `env:"GSHEETS_ID"`

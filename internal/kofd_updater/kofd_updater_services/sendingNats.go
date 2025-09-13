@@ -42,9 +42,9 @@ func SendToNats(cfg *config.Config, Log1 *slog.Logger,
 			_, err = js.AddStream(&nats.StreamConfig{
 				Name:     cfg.NATS_STREAM_NAME,
 				Subjects: []string{subject},
-				Storage:  nats.FileStorage,  // хранение на диске
-				MaxBytes: 100 * 1024 * 1024, // лимит 100 MB
-				Discard:  nats.DiscardOld,   // при переполнении удалять старые сообщения
+				Storage:  nats.FileStorage, // хранение на диске
+				MaxBytes: 50 * 1024 * 1024, // лимит 50 MB
+				Discard:  nats.DiscardOld,  // при переполнении удалять старые сообщения
 			})
 			if err != nil {
 				log.Error("Failed to add stream", "error", err)
