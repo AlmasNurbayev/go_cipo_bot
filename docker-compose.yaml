@@ -30,7 +30,7 @@ services:
       - NATS_MONITORING_PORT=${NATS_MONITORING_PORT}
       - NATS_STREAM_NAME=${NATS_STREAM_NAME}
     volumes:
-      - ./volume_assets:/app/assets
+      - ./_volume_assets:/app/assets
       - /etc/localtime:/etc/localtime:ro
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:${HTTP_PORT}/healthz']
