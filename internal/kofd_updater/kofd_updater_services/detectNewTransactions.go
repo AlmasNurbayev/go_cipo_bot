@@ -42,7 +42,7 @@ func DetectNewOperations(ctx context.Context, storage storageOperations2,
 		log.Info("cursor for user ", slog.String("user", user.Telegram_id), slog.Int("id", int(user.Transaction_cursor.Int64)))
 		if user.Transaction_cursor.Int64 == 0 {
 			log.Info("Чистый курсор, отправляем последнюю операцию", slog.String("user", user.Telegram_id))
-			err = storage.SetCursor(ctx, operations[len(operations)-1].Id, user.Id)
+			err = storage.SetCursor(ctx, operations[0].Id, user.Id)
 			if err != nil {
 				log.Error("не удалось установать курсор: ", slog.String("err", err.Error()))
 				return messages, err

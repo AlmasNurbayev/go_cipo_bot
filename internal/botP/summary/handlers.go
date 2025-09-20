@@ -265,7 +265,26 @@ func summaryGetCheckHandler(storage storageI,
 				Media:  *inputMedia,
 			})
 			if err != nil {
+				// если не получилось отправить медиа группой, то отправляем текстом
 				log.Error("error sending media group", slog.String("err", err.Error()))
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID:    cb.Message.Message.Chat.ID,
+					Text:      stringResponce,
+					ParseMode: models.ParseModeHTML,
+					ReplyMarkup: &models.InlineKeyboardMarkup{
+						InlineKeyboard: [][]models.InlineKeyboardButton{
+							{
+								{
+									Text:         "Полный текст чека",
+									CallbackData: "getFullTextCheck_" + strings.Split(cb.Data, "_")[1],
+								},
+							},
+						},
+					},
+				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
 			}
 			// так как нельзя отправить кнопку к МедиаГруппе, то отправляем отдельным сообщением
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
