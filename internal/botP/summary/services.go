@@ -355,7 +355,7 @@ func getOneCheckService(queryString string, storage storageI,
 		fmt.Println(sb.String())
 		return nil, sb.String(), nil
 	} else {
-		return &inputMedia, "", nil
+		return &inputMedia, sb.String(), nil
 	}
 }
 

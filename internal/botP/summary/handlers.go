@@ -238,8 +238,8 @@ func summaryGetCheckHandler(storage storageI,
 			}
 		}
 
-		// Если есть текстовое сообщение, то отправляем его, иначе отправляем в виде фото
-		if stringResponce != "" {
+		// Если фото есть, то отправляем МедиаГруппой, иначе просто текстом
+		if len(*inputMedia) == 0 {
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:    cb.Message.Message.Chat.ID,
 				Text:      stringResponce,
