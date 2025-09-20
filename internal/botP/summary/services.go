@@ -275,7 +275,7 @@ func getAnalyticsService(mode string, storage storageI,
 }
 
 func getOneCheckService(queryString string, storage storageI,
-	log1 *slog.Logger, cfg *config.Config) (*[]models.InputMedia, string, error) {
+	log1 *slog.Logger, cfg *config.Config) ([]models.InputMedia, string, error) {
 
 	op := "summary.getOneCheck"
 	log := log1.With(slog.String("op", op))
@@ -294,7 +294,7 @@ func getOneCheckService(queryString string, storage storageI,
 		return nil, "", err
 	}
 
-	log.Info("queryString", slog.String("queryString", queryString))
+	//log.Info("queryString", slog.String("queryString", queryString))
 
 	data, err := storage.GetTransactionById(context.Background(), checkID)
 	if err != nil {
@@ -355,7 +355,7 @@ func getOneCheckService(queryString string, storage storageI,
 		fmt.Println(sb.String())
 		return nil, sb.String(), nil
 	} else {
-		return &inputMedia, sb.String(), nil
+		return inputMedia, sb.String(), nil
 	}
 }
 

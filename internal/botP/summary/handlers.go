@@ -239,7 +239,7 @@ func summaryGetCheckHandler(storage storageI,
 		}
 
 		// Если фото есть, то отправляем МедиаГруппой, иначе просто текстом
-		if len(*inputMedia) == 0 {
+		if len(inputMedia) == 0 {
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:    cb.Message.Message.Chat.ID,
 				Text:      stringResponce,
@@ -262,7 +262,7 @@ func summaryGetCheckHandler(storage storageI,
 			// если есть фото, отправляем медиа группой
 			_, err = b.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
 				ChatID: cb.Message.Message.Chat.ID,
-				Media:  *inputMedia,
+				Media:  inputMedia,
 			})
 			// Запоминаем, что кнопку "Полный текст чека" уже отправили
 			FullTextButtonIsSending := false
