@@ -264,6 +264,8 @@ func summaryGetCheckHandler(storage storageI,
 				ChatID: cb.Message.Message.Chat.ID,
 				Media:  *inputMedia,
 			})
+			// Запоминаем, что кнопку "Полный текст чека" уже отправили
+			FullTextButtonIsSending := false
 			if err != nil {
 				// если не получилось отправить медиа группой, то отправляем текстом
 				log.Error("error sending media group", slog.String("err", err.Error()))
@@ -285,24 +287,28 @@ func summaryGetCheckHandler(storage storageI,
 				if err != nil {
 					log.Error("error sending message", slog.String("err", err.Error()))
 				}
+				FullTextButtonIsSending = true
 			}
 			// так как нельзя отправить кнопку к МедиаГруппе, то отправляем отдельным сообщением
-			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: cb.Message.Message.Chat.ID,
-				Text:   "Полный текст чека",
-				ReplyMarkup: &models.InlineKeyboardMarkup{
-					InlineKeyboard: [][]models.InlineKeyboardButton{
-						{
+			// если ранее такая кнопка уже была отправлена, то не отправляем повторно
+			if !FullTextButtonIsSending {
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: cb.Message.Message.Chat.ID,
+					Text:   "Полный текст чека",
+					ReplyMarkup: &models.InlineKeyboardMarkup{
+						InlineKeyboard: [][]models.InlineKeyboardButton{
 							{
-								Text:         "Открыть",
-								CallbackData: "getFullTextCheck_" + strings.Split(cb.Data, "_")[1],
+								{
+									Text:         "Открыть",
+									CallbackData: "getFullTextCheck_" + strings.Split(cb.Data, "_")[1],
+								},
 							},
 						},
 					},
-				},
-			})
-			if err != nil {
-				log.Error("error sending message", slog.String("err", err.Error()))
+				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
 			}
 		}
 	}
