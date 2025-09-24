@@ -3,7 +3,6 @@ package summary
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"sort"
 	"strconv"
@@ -352,7 +351,7 @@ func getOneCheckService(queryString string, storage storageI,
 
 	// Если есть фото, то отправляем их, иначе просто текст
 	if len(inputMedia) == 0 {
-		fmt.Println(sb.String())
+		//fmt.Println(sb.String())
 		return nil, sb.String(), nil
 	} else {
 		return inputMedia, sb.String(), nil
