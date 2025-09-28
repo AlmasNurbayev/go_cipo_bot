@@ -67,14 +67,13 @@ func summaryHandler(storage storageI,
 		text := "<b>" + data.DateMode +
 			" (" + data.StartDate.Format("02.01.2006") + " - " + data.EndDate.Format("02.01.2006") + ")</b> \n" +
 			"количество чеков: " + strconv.Itoa(data.Count) + "\n" +
-			"<b>чистая сумма продаж: " + p.Sprintf("%.0f", data.Sum) + "</b> \n" +
-			"сумма продаж: " + p.Sprintf("%.0f", data.SumSales) + "\n" +
-			"сумма возвратов: " + p.Sprintf("%.0f", data.SumReturns) + "\n" +
-			" в т.ч. кеш: " + p.Sprintf("%.0f", data.SumSalesCash) + "\n" +
-			"        карта: " + p.Sprintf("%.0f", data.SumSalesCard) + "\n" +
-			"        смешанно: " + p.Sprintf("%.0f", data.SumSalesMixed) + "\n" +
-			"        прочее: " + p.Sprintf("%.0f", data.SumSalesOther) + "\n" +
-			"сумма возвратов: " + p.Sprintf("%.0f", data.SumReturns) + "\n" +
+			"чистая сумма продаж: <b>" + p.Sprintf("%.0f", data.Sum) + "</b> \n" +
+			" в т.ч. кеш: " + p.Sprintf("%.0f", data.SumSalesCash-data.SumReturnsCash) + "\n" +
+			"        карта: " + p.Sprintf("%.0f", data.SumSalesCard-data.SumReturnsCard) + "\n" +
+			"        смешанно: " + p.Sprintf("%.0f", data.SumSalesMixed-data.SumReturnsMixed) + "\n" +
+			"        прочее: " + p.Sprintf("%.0f", data.SumSalesOther-data.SumReturnsOther) + "\n" +
+			"Cумма продаж: " + p.Sprintf("%.0f", data.SumSales) + "\n" +
+			"Cумма возвратов: " + p.Sprintf("%.0f", data.SumReturns) + "\n" +
 			"\n"
 
 		// если есть больше 1 кассы, то выводим информацию по ним
@@ -94,14 +93,14 @@ func summaryHandler(storage storageI,
 				"сумма возвратов: " + p.Sprintf("%.0f", kassa.SumReturns) + "\n"
 		}
 		text +=
-			"\nВыемки: " + p.Sprintf("%.0f", data.SumOutputCash) + "\n" +
-				"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n\n" +
-				"<b>Наличие денег в кассах: </b>" + "\n"
+			"Выемки: " + p.Sprintf("%.0f", data.SumOutputCash) + ", " +
+				"Внесения: " + p.Sprintf("%.0f", data.SumInputCash) + "\n" +
+				"Наличие денег в кассах:"
 
 		for _, kassa := range data.KassaTotal {
 			if kassa.CashAmount != 0 {
 				text += kassa.NameKassa +
-					" остаток: " + p.Sprintf("%.0f", kassa.CashAmount) + "\n"
+					" " + p.Sprintf("%.0f", kassa.CashAmount) + "\n"
 			}
 		}
 

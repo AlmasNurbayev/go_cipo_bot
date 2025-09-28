@@ -20,7 +20,7 @@ func Init(b *bot.Bot, storage *storage.Storage,
 	regSummary := regexp.MustCompile(`(?i)^финансы.*`)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regSummary, financeMainHandler(storage, log, cfg))
 
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "finance_", bot.MatchTypePrefix, financeCallbackHandler(storage, log, cfg))
+	//b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "finance_", bot.MatchTypePrefix, financeCallbackHandler(storage, log, cfg))
 
 }
 

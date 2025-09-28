@@ -37,8 +37,8 @@ func financeMainHandler(storage *storage.Storage, log1 *slog.Logger, cfg *config
 	}
 }
 
-func financeCallbackHandler(storage *storage.Storage, log *slog.Logger, cfg *config.Config) bot.HandlerFunc {
-	return func(ctx context.Context, b *bot.Bot, update *models.Update) {}
-}
+// func financeCallbackHandler(storage *storage.Storage, log *slog.Logger, cfg *config.Config) bot.HandlerFunc {
+// 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {}
+// }
 
 //log.Info("financeMainHandler")
