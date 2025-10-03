@@ -7,18 +7,19 @@ import (
 	"regexp"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
+	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
 func Init(b *bot.Bot, storage *storage.Storage,
-	log *slog.Logger, cfg *config.Config) {
+	log *slog.Logger, cfg *config.Config, settings []modelsI.SettingsEntity) {
 	// слушаем сообщения
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/finance", bot.MatchTypeExact, initKeyboard)
 	// любой регистр и любое количество символов после "финансы"
 	regSummary := regexp.MustCompile(`(?i)^финансы.*`)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regSummary, financeMainHandler(storage, log, cfg))
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regSummary, financeMainHandler(log, cfg, settings))
 
 	//b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "finance_", bot.MatchTypePrefix, financeCallbackHandler(storage, log, cfg))
 
