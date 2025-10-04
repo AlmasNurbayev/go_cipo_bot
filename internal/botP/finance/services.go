@@ -44,7 +44,6 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 	finance_opiu_cost_items := config.GetSettingsString("FINANCE_OPIU_COST_ITEMS", settings)
 	finance_opiu_revenue_items := config.GetSettingsString("FINANCE_OPIU_REVENUE_ITEMS", settings)
 	finance_usd_rate, err := config.GetSettingsUSDRates("FINANCE_USD_RATE", settings)
-	log.Debug("finance_usd_rate", slog.Any("finance_usd_rate", finance_usd_rate))
 
 	if err != nil {
 		log.Error("error getting finance_usd_rate: ", slog.String("err", err.Error()))
@@ -83,8 +82,6 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 		finance_usd_rate,
 	)
 
-	// формируем таблицу для выгрузки в PDF
-
 	// формируем массивы с заголовками и параметрами
 	header := []string{
 		"Показатель",
@@ -94,7 +91,9 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 	}
 	var spans []int
 	if len(groupOpiuData) < 3 {
-		spans = append(spans, 5)
+		spans = append(spans, 7)
+	} else if len(groupOpiuData) < 6 {
+		spans = append(spans, 4)
 	} else {
 		spans = append(spans, 3)
 	}
@@ -105,6 +104,8 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 		header = append(header, v.Period.Format("2006-01"))
 		textAlign = append(textAlign, charts.AlignRight)
 		if len(groupOpiuData) < 3 {
+			spans = append(spans, 3)
+		} else if len(groupOpiuData) < 6 {
 			spans = append(spans, 2)
 		} else {
 			spans = append(spans, 1)
@@ -219,10 +220,17 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 	}
 
 	// генерируем таблицу
+	var widthCol int
+	if len(data[0]) < 4 {
+		widthCol = 200
+	} else {
+		widthCol = 150
+	}
+
 	p := charts.NewPainter(charts.PainterOptions{
 		OutputFormat: charts.ChartOutputPNG,
-		Width:        len(data[0]) * 200, // ширина на каждый период
-		Height:       len(data) * 55,     // высота на каждый показатель
+		Width:        len(data[0]) * widthCol, // ширина на каждый период
+		Height:       len(data) * 55,          // высота на каждый показатель
 	})
 	p.FilledRect(0, 0, 810, 300, charts.ColorWhite, charts.ColorWhite, 0.0)
 	tableOpt1 := charts.TableChartOption{
@@ -347,20 +355,19 @@ func groupOpiuData(
 			case inSet(d.Category, specialItems):
 				cs := specialMap[d.Category]
 				cs.Category = d.Category
-				cs.Sum += d.Sum
-				cs.SumUSD += d.SumUSD
-				if cs.SumUSD != 0 {
+				if d.SumUSD != 0 {
 					// если есть закуп в USD, то находим курс нужного года и добавляем
 					indexUSDYear := slices.IndexFunc(usdRates, func(s models.USDRates) bool {
 						return s.Year == period.Year()
 					})
 					if indexUSDYear != -1 {
-						cs.Sum += float64(d.SumUSD * float64(usdRates[indexUSDYear].Rate))
+						d.Sum += float64(d.SumUSD * float64(usdRates[indexUSDYear].Rate))
 					}
 				}
+				cs.Sum += d.Sum
+				cs.SumUSD += d.SumUSD
 				specialMap[d.Category] = cs
-				col.Special.Sum += cs.Sum
-
+				col.Special.Sum += d.Sum
 			}
 		}
 
@@ -382,7 +389,7 @@ func groupOpiuData(
 		}
 
 		// если прибыль или внешние расходы нулевые, то данных нет и не добавляем период
-		if col.Profit == 0 || col.Special.Sum == 0 {
+		if col.Profit == 0 && col.Special.Sum == 0 {
 			continue
 		}
 

@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"reflect"
 	"strconv"
@@ -31,7 +30,6 @@ func GetSettingsUSDRates(key string, settings []models.SettingsEntity) ([]models
 	var result []models.USDRates
 	for _, s := range settings {
 		if s.Key == key {
-			fmt.Println(s)
 			for _, v := range s.Value {
 				m, ok := v.(map[string]any)
 				if !ok {
