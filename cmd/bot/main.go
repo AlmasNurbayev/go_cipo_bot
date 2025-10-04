@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	fmt.Println("reading config...")
+	pretty.Log("reading config...")
 	var configEnv string
 	flag.StringVar(&configEnv, "configEnv", "", "Path to env-file")
 	flag.Parse()
@@ -31,7 +31,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	pretty.Print(cfg)
 
 	fmt.Println(string(*cfgBytes))
 	Log.Debug("debug message is enabled")
