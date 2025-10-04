@@ -21,7 +21,7 @@ type storageI interface {
 	ListKassa(context.Context) ([]modelsI.KassaEntity, error)
 }
 
-func getSummaryDate(mode string, storage storageI,
+func getSummaryDate(ctx context.Context, mode string, storage storageI,
 	log1 *slog.Logger) (modelsI.TypeTransactionsTotal, error) {
 
 	op := "summary.getSummaryDate"
@@ -36,12 +36,12 @@ func getSummaryDate(mode string, storage storageI,
 		return result, err
 	}
 
-	kassas, err := storage.ListKassa(context.Background())
+	kassas, err := storage.ListKassa(ctx)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return result, err
 	}
-	data, err := storage.ListTransactionsByDate(context.Background(), start, end)
+	data, err := storage.ListTransactionsByDate(ctx, start, end)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return result, err
@@ -70,7 +70,7 @@ func getSummaryDate(mode string, storage storageI,
 	return result, err
 }
 
-func getAllChecksService(mode string, storage storageI,
+func getAllChecksService(ctx context.Context, mode string, storage storageI,
 	log1 *slog.Logger, cfg *config.Config) (string, models.InlineKeyboardMarkup, error) {
 
 	op := "summary.getAllChecks"
@@ -89,7 +89,7 @@ func getAllChecksService(mode string, storage storageI,
 	}
 	log.Info("date", slog.Time("start", start), slog.Time("end", end))
 
-	data, err := storage.ListTransactionsByDate(context.Background(), start, end)
+	data, err := storage.ListTransactionsByDate(ctx, start, end)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return "", markups, err
@@ -152,7 +152,7 @@ func getAllChecksService(mode string, storage storageI,
 	return sb.String(), markups, nil
 }
 
-func getAnalyticsService(mode string, storage storageI,
+func getAnalyticsService(ctx context.Context, mode string, storage storageI,
 	log1 *slog.Logger, cfg *config.Config) (string, *models.InlineKeyboardMarkup, error) {
 
 	op := "summary.getAnalytics"
@@ -172,7 +172,7 @@ func getAnalyticsService(mode string, storage storageI,
 	log.Info("date", slog.Time("start", start), slog.Time("end", end))
 	diff := int(end.Sub(start).Hours() / 24)
 
-	data, err := storage.ListTransactionsByDate(context.Background(), start, end)
+	data, err := storage.ListTransactionsByDate(ctx, start, end)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return "", markups, err
@@ -273,7 +273,7 @@ func getAnalyticsService(mode string, storage storageI,
 	return sb.String(), markups, nil
 }
 
-func getOneCheckService(queryString string, storage storageI,
+func getOneCheckService(ctx context.Context, queryString string, storage storageI,
 	log1 *slog.Logger, cfg *config.Config) ([]models.InputMedia, string, error) {
 
 	op := "summary.getOneCheck"
@@ -295,7 +295,7 @@ func getOneCheckService(queryString string, storage storageI,
 
 	//log.Info("queryString", slog.String("queryString", queryString))
 
-	data, err := storage.GetTransactionById(context.Background(), checkID)
+	data, err := storage.GetTransactionById(ctx, checkID)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return nil, "", err
@@ -358,7 +358,7 @@ func getOneCheckService(queryString string, storage storageI,
 	}
 }
 
-func getFullTextCheckService(queryString string, storage storageI,
+func getFullTextCheckService(ctx context.Context, queryString string, storage storageI,
 	log1 *slog.Logger) (string, error) {
 
 	op := "summary.getAllChecks"
@@ -378,7 +378,7 @@ func getFullTextCheckService(queryString string, storage storageI,
 
 	log.Info("queryString", slog.String("queryString", queryString))
 
-	data, err := storage.GetTransactionById(context.Background(), checkID)
+	data, err := storage.GetTransactionById(ctx, checkID)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return "", err

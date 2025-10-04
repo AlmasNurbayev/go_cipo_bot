@@ -239,7 +239,7 @@ func GetTypeOperationText(oper modelsI.TransactionEntity) string {
 	return "Неизвестно"
 }
 
-func SendAction(chatID int64, action string, b *bot.Bot) error {
+func SendAction(ctx context.Context, chatID int64, action string, b *bot.Bot) error {
 	// Отправляем действие, чтобы не было "пустого" сообщения
 	var typeAction models.ChatAction
 	switch action {
@@ -261,7 +261,7 @@ func SendAction(chatID int64, action string, b *bot.Bot) error {
 		}
 
 	}
-	_, err := b.SendChatAction(context.Background(), &bot.SendChatActionParams{
+	_, err := b.SendChatAction(ctx, &bot.SendChatActionParams{
 		ChatID: chatID,
 		Action: typeAction,
 	})

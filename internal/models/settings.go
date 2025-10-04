@@ -15,3 +15,8 @@ type Books struct {
 	Sheet string `json:"sheet"`
 	Range string `json:"range"`
 }
+
+type USDRates struct {
+	Year int `json:"year"`
+	Rate int `json:"rate"`
+}

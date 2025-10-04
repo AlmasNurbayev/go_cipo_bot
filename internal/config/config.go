@@ -18,8 +18,9 @@ type Config struct {
 	POSTGRES_HOST     string        `env:"POSTGRES_HOST"`
 	POSTGRES_INT_PORT string        `env:"POSTGRES_INT_PORT"`
 
-	SECRET_KEY  string `env:"SECRET_KEY"  json:"-"`
-	SECRET_BYTE []byte `json:"-"`
+	SECRET_KEY     string `env:"SECRET_KEY"  json:"-"` // для шифрования в БД
+	SECRET_BYTE    []byte `json:"-"`                   // для шифрования в БД
+	GOOGLE_API_KEY string `env:"GOOGLE_API_KEY" json:"-"`
 
 	BOT_TOKEN   string        `env:"BOT_TOKEN"  json:"-"`
 	BOT_TIMEOUT time.Duration `env:"BOT_TIMEOUT"`
@@ -36,9 +37,9 @@ type Config struct {
 	NATS_MONITORING_PORT string `env:"NATS_MONITORING_PORT"`
 	NATS_STREAM_NAME     string `env:"NATS_STREAM_NAME"`
 
-	CIPO_PRODUCTS_URL string `env:"CIPO_PRODUCTS_URL"`
-	CIPO_IMAGES_URL   string `env:"CIPO_IMAGES_URL"`
-	CIPO_QNT_URL      string `env:"CIPO_QNT_URL"`
+	CIPO_PRODUCTS_URL string `env:"CIPO_PRODUCTS_URL"` // в бэкенд CIPO - карточка товара
+	CIPO_IMAGES_URL   string `env:"CIPO_IMAGES_URL"`   // в бэкенд CIPO - статика
+	CIPO_QNT_URL      string `env:"CIPO_QNT_URL"`      // в бэкенд CIPO - остатки и цены склада
 
 	ENV string `env:"ENV"`
 }

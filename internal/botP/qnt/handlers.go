@@ -21,7 +21,7 @@ func qntNowHandler(storage *storage.Storage, log1 *slog.Logger, cfg *config.Conf
 		//return
 		log.Info("qnt now called button", slog.String("text", msg.Text))
 
-		text, err := qntNowService(log, cfg)
+		text, err := qntNowService(ctx, log, cfg)
 		if err != nil {
 			log.Error("error qntNowService", slog.String("err", err.Error()))
 			text = "Ошибка получения остатков"

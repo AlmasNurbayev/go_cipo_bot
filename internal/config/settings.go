@@ -2,8 +2,10 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"reflect"
+	"strconv"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
@@ -23,6 +25,37 @@ func GetSettingsString(key string, settings []models.SettingsEntity) []string {
 		}
 	}
 	return nil
+}
+
+func GetSettingsUSDRates(key string, settings []models.SettingsEntity) ([]models.USDRates, error) {
+	var result []models.USDRates
+	for _, s := range settings {
+		if s.Key == key {
+			fmt.Println(s)
+			for _, v := range s.Value {
+				m, ok := v.(map[string]any)
+				if !ok {
+					continue
+				}
+				for year, rateVal := range m {
+					rateFloat, ok := rateVal.(float64)
+					if !ok {
+						continue
+					}
+					year, err := strconv.Atoi(year)
+					if err != nil {
+						return result, err
+					}
+					result = append(result, models.USDRates{
+						Year: year,
+						Rate: int(rateFloat),
+					})
+				}
+			}
+
+		}
+	}
+	return result, nil
 }
 
 func GetSettingsGSheetsSources(key string, settings []models.SettingsEntity) []models.Books {
@@ -50,9 +83,9 @@ func GetSettingsGSheetsSources(key string, settings []models.SettingsEntity) []m
 	return result
 }
 
-func GetSettings(storage *storage.Storage, log slog.Logger) ([]models.SettingsEntity, error) {
+func GetSettings(ctx context.Context, storage *storage.Storage, log slog.Logger) ([]models.SettingsEntity, error) {
 	var result []models.SettingsEntity
-	settings, err := storage.GetSettings(context.Background())
+	settings, err := storage.GetSettings(ctx)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return result, err
@@ -60,9 +93,9 @@ func GetSettings(storage *storage.Storage, log slog.Logger) ([]models.SettingsEn
 	return settings, nil
 }
 
-func GetOneKeySettings(key string, storage *storage.Storage, log slog.Logger) (models.SettingsEntity, error) {
+func GetOneKeySettings(ctx context.Context, key string, storage *storage.Storage, log slog.Logger) (models.SettingsEntity, error) {
 	var result models.SettingsEntity
-	settings, err := storage.GetSettings(context.Background())
+	settings, err := storage.GetSettings(ctx)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return result, err

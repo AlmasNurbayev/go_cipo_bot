@@ -11,19 +11,17 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/qnt"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/summary"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
-	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
 type BotApp struct {
-	Log      *slog.Logger
-	Bot      *bot.Bot
-	Cfg      *config.Config
-	Storage  *storage.Storage
-	Ctx      context.Context
-	Settings []modelsI.SettingsEntity
+	Log     *slog.Logger
+	Bot     *bot.Bot
+	Cfg     *config.Config
+	Storage *storage.Storage
+	Ctx     context.Context
 }
 
 func NewApp(ctx context.Context, cfg *config.Config, log *slog.Logger) (*BotApp, error) {
@@ -35,12 +33,6 @@ func NewApp(ctx context.Context, cfg *config.Config, log *slog.Logger) (*BotApp,
 	storage, err := storage.NewStorage(ctxDB, dsn, log)
 	if err != nil {
 		log.Error("not init postgres storage")
-		panic(err)
-	}
-
-	settings, err := config.GetSettings(storage, *log)
-	if err != nil {
-		log.Error("not init settings from db")
 		panic(err)
 	}
 
@@ -57,12 +49,11 @@ func NewApp(ctx context.Context, cfg *config.Config, log *slog.Logger) (*BotApp,
 	}
 
 	return &BotApp{
-		Log:      log,
-		Bot:      b,
-		Storage:  storage,
-		Cfg:      cfg,
-		Ctx:      ctx,
-		Settings: settings,
+		Log:     log,
+		Bot:     b,
+		Storage: storage,
+		Cfg:     cfg,
+		Ctx:     ctx,
 	}, nil
 }
 
@@ -70,7 +61,7 @@ func (b *BotApp) Run() {
 	summary.Init(b.Bot, b.Storage, b.Log, b.Cfg)
 	charts.Init(b.Bot, b.Storage, b.Log, b.Cfg)
 	qnt.Init(b.Bot, b.Storage, b.Log, b.Cfg)
-	finance.Init(b.Bot, b.Storage, b.Log, b.Cfg, b.Settings)
+	finance.Init(b.Bot, b.Storage, b.Log, b.Cfg)
 	b.Log.Info("bot try started", slog.String("port", "8443"))
 	b.Bot.Start(b.Ctx)
 }

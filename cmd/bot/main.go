@@ -13,6 +13,7 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/logger"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
+	"github.com/kr/pretty"
 )
 
 func main() {
@@ -30,6 +31,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	pretty.Print(cfg)
+
 	fmt.Println(string(*cfgBytes))
 	Log.Debug("debug message is enabled")
 

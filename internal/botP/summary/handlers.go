@@ -52,7 +52,7 @@ func summaryHandler(storage storageI,
 			return
 		}
 
-		data, err := getSummaryDate(msg.Text, storage, log)
+		data, err := getSummaryDate(ctx, msg.Text, storage, log)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
@@ -151,7 +151,7 @@ func summaryCallbackHandler(storage storageI,
 		}
 
 		if strings.Contains(cb.Data, "summary_allChecks_") {
-			response, markups, err := getAllChecksService(cb.Data, storage, log, cfg)
+			response, markups, err := getAllChecksService(ctx, cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -174,11 +174,11 @@ func summaryCallbackHandler(storage storageI,
 		}
 
 		if strings.Contains(cb.Data, "summary_analytics_") {
-			err := utils.SendAction(cb.Message.Message.Chat.ID, "typing", b)
+			err := utils.SendAction(ctx, cb.Message.Message.Chat.ID, "typing", b)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 			}
-			response, markups, err := getAnalyticsService(cb.Data, storage, log, cfg)
+			response, markups, err := getAnalyticsService(ctx, cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -221,11 +221,11 @@ func summaryGetCheckHandler(storage storageI,
 		if err != nil {
 			log.Error("error answering callback query", slog.String("err", err.Error()))
 		}
-		err = utils.SendAction(cb.Message.Message.Chat.ID, "upload_photo", b)
+		err = utils.SendAction(ctx, cb.Message.Message.Chat.ID, "upload_photo", b)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 		}
-		inputMedia, stringResponce, err := getOneCheckService(cb.Data, storage, log, cfg)
+		inputMedia, stringResponce, err := getOneCheckService(ctx, cb.Data, storage, log, cfg)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -331,7 +331,7 @@ func summaryFullTextCheckHandler(storage storageI,
 			log.Error("error answering callback query", slog.String("err", err.Error()))
 		}
 
-		response, err := getFullTextCheckService(cb.Data, storage, log)
+		response, err := getFullTextCheckService(ctx, cb.Data, storage, log)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{

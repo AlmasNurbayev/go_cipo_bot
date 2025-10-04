@@ -1,18 +1,19 @@
 package finance
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
 	"strings"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
-	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
+	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/kr/pretty"
 )
 
-func financeMainHandler(log1 *slog.Logger, cfg *config.Config, settings []modelsI.SettingsEntity) bot.HandlerFunc {
+func financeMainHandler(log1 *slog.Logger, cfg *config.Config, storage *storage.Storage) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "summary.financeMainHandler"
 		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.Message.From.ID)), slog.String("user name", update.Message.From.Username))
@@ -20,7 +21,12 @@ func financeMainHandler(log1 *slog.Logger, cfg *config.Config, settings []models
 		if msg == nil {
 			return
 		}
-		//return
+		cb := update.Message
+		err := utils.SendAction(ctx, cb.Chat.ID, "typing", b)
+		if err != nil {
+			log.Error("error: ", slog.String("err", err.Error()))
+		}
+
 		log.Info("finance called button", slog.String("text", msg.Text))
 		parts := strings.Split(msg.Text, " ")
 		if len(parts) < 2 {
@@ -45,7 +51,9 @@ func financeMainHandler(log1 *slog.Logger, cfg *config.Config, settings []models
 			}
 			return
 		}
-		data, err := financeOPIUService(msg.Text, settings, log)
+
+		// формируем данные и картинку таблицы
+		data, text, err := financeOPIUService(ctx, log, storage, msg.Text, cfg.GOOGLE_API_KEY)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
@@ -56,12 +64,17 @@ func financeMainHandler(log1 *slog.Logger, cfg *config.Config, settings []models
 				log.Error("error sending message", slog.String("err", err.Error()))
 			}
 		}
-		pretty.Log(data)
+
+		// отправляем картинку таблицы
+		_, err = b.SendPhoto(ctx, &bot.SendPhotoParams{
+			ChatID:    update.Message.Chat.ID,
+			Caption:   text,
+			ParseMode: models.ParseModeHTML,
+			Photo:     &models.InputFileUpload{Filename: "chart30days.png", Data: bytes.NewReader(data)},
+		})
+		if err != nil {
+			log.Error("error sending file", slog.String("err", err.Error()))
+		}
+
 	}
 }
-
-// func financeCallbackHandler(storage *storage.Storage, log *slog.Logger, cfg *config.Config) bot.HandlerFunc {
-// 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {}
-// }
-
-//log.Info("financeMainHandler")

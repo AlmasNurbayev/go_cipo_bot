@@ -1,6 +1,7 @@
 package qnt
 
 import (
+	"context"
 	"log/slog"
 	"sort"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 )
 
-func qntNowService(log1 *slog.Logger, cfg *config.Config) (string, error) {
+func qntNowService(ctx context.Context, log1 *slog.Logger, cfg *config.Config) (string, error) {
 
 	op := "summary.getAnalytics"
 	log := log1.With(slog.String("op", op))
