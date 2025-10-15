@@ -7,6 +7,7 @@ import (
 type SettingsEntity struct {
 	Key       string    `json:"key" db:"key"`
 	Value     []any     `json:"value" db:"value"`
+	Caption   string    `json:"caption" db:"caption"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 

@@ -4,3 +4,5 @@
 /.vscode/
 /volume_*
 /_volume_*
+.idea/
+.DS_Store

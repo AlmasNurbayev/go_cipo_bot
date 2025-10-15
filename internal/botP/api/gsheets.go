@@ -84,9 +84,12 @@ func convertResponseToEntitiesV1(response models.GSheetsResponseV1) ([]models.GS
 		for i, cell := range row {
 			switch i {
 			case 0:
+				if cell == "" {
+					continue
+				}
 				s, err := utils.ParseStringToInt(cell)
 				if err != nil {
-					return entities, fmt.Errorf("%w SumUSD for Id=%d", err, entity.Id)
+					return entities, fmt.Errorf("%w Id for Id=%d", err, i)
 				}
 				entity.Id = s
 			case 1:

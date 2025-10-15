@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"reflect"
 	"strconv"
@@ -24,6 +25,20 @@ func GetSettingsString(key string, settings []models.SettingsEntity) []string {
 		}
 	}
 	return nil
+}
+
+func GetSettingsFloat64(key string, settings []models.SettingsEntity) (float64, error) {
+	for _, s := range settings {
+		if s.Key == key {
+			for _, v := range s.Value {
+				switch val := v.(type) {
+				case float64:
+					return val, nil
+				}
+			}
+		}
+	}
+	return 0, errors.New("no float64 value found for key: " + key)
 }
 
 func GetSettingsUSDRates(key string, settings []models.SettingsEntity) ([]models.USDRates, error) {

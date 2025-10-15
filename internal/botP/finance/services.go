@@ -44,9 +44,13 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 	finance_opiu_cost_items := config.GetSettingsString("FINANCE_OPIU_COST_ITEMS", settings)
 	finance_opiu_revenue_items := config.GetSettingsString("FINANCE_OPIU_REVENUE_ITEMS", settings)
 	finance_usd_rate, err := config.GetSettingsUSDRates("FINANCE_USD_RATE", settings)
-
 	if err != nil {
 		log.Error("error getting finance_usd_rate: ", slog.String("err", err.Error()))
+		return result, text, err
+	}
+	finance_planning_margin, err := config.GetSettingsFloat64("FINANCE_PLANNING_MARGIN", settings)
+	if err != nil {
+		log.Error("error getting FINANCE_PLANNING_MARGIN: ", slog.String("err", err.Error()))
 		return result, text, err
 	}
 
@@ -62,7 +66,7 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 		}
 	}
 
-	// получаем список периодов для отчета, между start и end
+	// получаем список периодов для отчета, помесячно, между start и end
 	periods := []time.Time{}
 	current := time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, start.Location())
 	for !current.After(end) {
@@ -100,6 +104,50 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 	var totalProfit, totalProfitMargin, totalCosts, totalRevenue,
 		totalPrivateCosts, totalZakup int
 
+	// проходим по всем периодам из данных Gsheets
+	// если пустая выручка в Gsheets, то пытаемся получить транзакции из касс
+	for indexV, v := range groupOpiuData {
+		// если выручки нет, то пытаемся получить транзакции из касс
+		if v.Revenue.Sum == 0 {
+			// получаем начальные и конечные даты месяца
+			nextMonth := v.Period.AddDate(0, 1, 0)
+			end := nextMonth.Add(-time.Nanosecond)
+			// получаем транзакции из касс
+			kassas, err := storage.ListKassa(ctx)
+			if err != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+				return result, text, err
+			}
+			data, err := storage.ListTransactionsByDate(ctx, v.Period, end)
+			if err != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+				return result, text, err
+			}
+			summary := utils.ConvertTransToTotal(data, kassas)
+			groupOpiuData[indexV].Revenue.Categories = append(v.Revenue.Categories, CategorySum{
+				Category: "Сумма чеков по кассам",
+				Sum:      summary.SumSales - summary.SumReturns,
+			})
+			groupOpiuData[indexV].Revenue.Sum += summary.SumSales - summary.SumReturns
+
+			// если есть плановая рентабельность, то считаем себестоимость товара
+			if finance_planning_margin > 0 {
+				costGoods := (groupOpiuData[indexV].Revenue.Sum / finance_planning_margin)
+				groupOpiuData[indexV].Costs.Categories = append(v.Costs.Categories, CategorySum{
+					Category: "Прогнозная себестоимость",
+					Sum:      costGoods,
+				})
+				groupOpiuData[indexV].Costs.Sum += costGoods
+				groupOpiuData[indexV].Profit = int(groupOpiuData[indexV].Revenue.Sum - groupOpiuData[indexV].Costs.Sum)
+				if groupOpiuData[indexV].Revenue.Sum != 0 {
+					groupOpiuData[indexV].ProfitMargin = int((float64(groupOpiuData[indexV].Profit) / groupOpiuData[indexV].Revenue.Sum) * 100)
+				}
+			}
+		}
+
+	}
+
+	// заполняем заголовки периодов
 	for _, v := range groupOpiuData {
 		header = append(header, v.Period.Format("2006-01"))
 		textAlign = append(textAlign, charts.AlignRight)
