@@ -14,6 +14,7 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 	"github.com/go-analyze/charts"
+	"github.com/kr/pretty"
 )
 
 func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage.Storage,
@@ -325,6 +326,171 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 	text += "Личные расходы " + utils.FormatNumber(float64(totalPrivateCosts)) +
 		", дельта от прибыли " + utils.FormatNumber(float64(totalProfit-totalPrivateCosts)) + "\n"
 	text += "Закупки всего " + utils.FormatNumber(float64(totalZakup))
+
+	return result, text, err
+}
+
+func financeChartService(ctx context.Context, log1 *slog.Logger, storage *storage.Storage,
+	mode string, googleApiKey string,
+) ([]byte, string, error) {
+
+	op := "finance.financeChartService"
+	log := log1.With(slog.String("op", op), slog.String("mode", mode))
+	var result []byte
+	var text string
+	var err error
+
+	// Получаем границы текущего дня в локальном времени
+	// start, end, err := utils.GetPeriodByMode(mode)
+	// if err != nil {
+	//log.Error("error: ", slog.String("err", err.Error()))
+	//return result, text, err
+	//}
+
+	// Получаем настройки из базы
+	settings, err := config.GetSettings(ctx, storage, *log)
+	if err != nil {
+		log.Error("error getting settings: ", slog.String("err", err.Error()))
+		return result, text, err
+	}
+
+	books := config.GetSettingsGSheetsSources("FINANCE_GHEETS_SOURCES", settings)
+	finance_opiu_special_items := config.GetSettingsString("FINANCE_OPIU_SPECIAL_ITEMS", settings)
+	finance_opiu_cost_items := config.GetSettingsString("FINANCE_OPIU_COST_ITEMS", settings)
+	finance_opiu_revenue_items := config.GetSettingsString("FINANCE_OPIU_REVENUE_ITEMS", settings)
+	finance_usd_rate, err := config.GetSettingsUSDRates("FINANCE_USD_RATE", settings)
+	if err != nil {
+		log.Error("error getting finance_usd_rate: ", slog.String("err", err.Error()))
+		return result, text, err
+	}
+	finance_planning_margin, err := config.GetSettingsFloat64("FINANCE_PLANNING_MARGIN", settings)
+	if err != nil {
+		log.Error("error getting FINANCE_PLANNING_MARGIN: ", slog.String("err", err.Error()))
+		return result, text, err
+	}
+
+	// Получаем все данные из гугл таблиц
+	sumData := []models.GSheetsEntityV1{}
+	for _, v := range books {
+		log.Info("book", slog.String("book", v.Book))
+		data, err := botP.GsheetsData(googleApiKey, v.Book, v.Sheet, v.Range, log1)
+		sumData = append(sumData, data...) // объединяем данные из всех таблиц
+		if err != nil {
+			log.Error("error: ", slog.String("err", err.Error()))
+			return result, text, err
+		}
+	}
+
+	// получаем начало каждого месяца текущего года и добавляем в массив
+	periods := []time.Time{}
+	var labels []string
+	now := time.Now()
+	year := now.Year()
+	location := now.Location()
+	for month := time.January; month <= time.December; month++ {
+		date := time.Date(year, month, 1, 0, 0, 0, 0, location)
+		periods = append(periods, date)
+		labels = append(labels, date.Format("2006-01"))
+	}
+
+	// фильтруем данные по периоду и группируем в категории
+	groupOpiuData := groupOpiuData(
+		sumData,
+		periods,
+		finance_opiu_revenue_items,
+		finance_opiu_cost_items,
+		finance_opiu_special_items,
+		finance_usd_rate,
+	)
+	//var totalProfit, totalProfitMargin, totalCosts, totalRevenue,
+	//	totalPrivateCosts, totalZakup int
+
+	// проходим по всем периодам из данных Gsheets
+	// если пустая выручка в Gsheets, то пытаемся получить транзакции из касс
+	for indexV, v := range groupOpiuData {
+		// если выручки нет, то пытаемся получить транзакции из касс
+		if v.Revenue.Sum == 0 {
+			// получаем начальные и конечные даты месяца
+			nextMonth := v.Period.AddDate(0, 1, 0)
+			end := nextMonth.Add(-time.Nanosecond)
+			// получаем транзакции из касс
+			kassas, err := storage.ListKassa(ctx)
+			if err != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+				return result, text, err
+			}
+			data, err := storage.ListTransactionsByDate(ctx, v.Period, end)
+			if err != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+				return result, text, err
+			}
+			summary := utils.ConvertTransToTotal(data, kassas)
+			groupOpiuData[indexV].Revenue.Categories = append(v.Revenue.Categories, CategorySum{
+				Category: "Сумма чеков по кассам",
+				Sum:      summary.SumSales - summary.SumReturns,
+			})
+			groupOpiuData[indexV].Revenue.Sum += summary.SumSales - summary.SumReturns
+
+			// если есть плановая рентабельность, то считаем себестоимость товара
+			if finance_planning_margin > 0 {
+				costGoods := (groupOpiuData[indexV].Revenue.Sum / finance_planning_margin)
+				groupOpiuData[indexV].Costs.Categories = append(v.Costs.Categories, CategorySum{
+					Category: "Прогнозная себестоимость",
+					Sum:      costGoods,
+				})
+				groupOpiuData[indexV].Costs.Sum += costGoods
+				groupOpiuData[indexV].Profit = int(groupOpiuData[indexV].Revenue.Sum - groupOpiuData[indexV].Costs.Sum)
+				if groupOpiuData[indexV].Revenue.Sum != 0 {
+					groupOpiuData[indexV].ProfitMargin = int((float64(groupOpiuData[indexV].Profit) / groupOpiuData[indexV].Revenue.Sum) * 100)
+				}
+			}
+		}
+	}
+	values := make([][]float64, 3)
+	for i := range groupOpiuData {
+		values[0] = append(values[0], groupOpiuData[i].Revenue.Sum)
+		values[1] = append(values[1], groupOpiuData[i].Costs.Sum)
+		values[2] = append(values[2], float64(groupOpiuData[i].Profit))
+	}
+	pretty.Log(values)
+
+	opt := charts.NewBarChartOptionWithData(values)
+	opt.Title.Text = "Крайние месяцы, этот год и предыдущий"
+	opt.XAxis.Labels = labels
+	opt.XAxis.LabelRotation = charts.DegreesToRadians(45)
+	opt.XAxis.LabelFontStyle.FontSize = 8
+	opt.YAxis[0].SplitLineShow = charts.Ptr(true)
+	opt.YAxis[1].Min = charts.Ptr(0.0)
+
+	opt.Legend = charts.LegendOption{
+		SeriesNames: []string{
+			"выручка", "затраты", "прибыль",
+		},
+		Offset: charts.OffsetRight,
+	}
+	opt.SeriesLabelPosition = charts.PositionTop
+
+	show := true
+	opt.SeriesList[0].Label.Show = &show
+	opt.SeriesList[1].Label.Show = &show
+	//opt.BarWidth = 10
+
+	p := charts.NewPainter(charts.PainterOptions{
+		Width:  900,
+		Height: 600,
+	})
+
+	err = p.BarChart(opt)
+	if err != nil {
+		log.Error("error creating bar chart", slog.String("err", err.Error()))
+		return result, text, err
+	}
+
+	result, err = p.Bytes()
+	if err != nil {
+		log.Error("error creating bar chart", slog.String("err", err.Error()))
+		return result, text, err
+	}
 
 	return result, text, err
 }

@@ -52,16 +52,38 @@ func financeMainHandler(log1 *slog.Logger, cfg *config.Config, storage *storage.
 			return
 		}
 
-		// формируем данные и картинку таблицы
-		data, text, err := financeOPIUService(ctx, log, storage, msg.Text, cfg.GOOGLE_API_KEY)
-		if err != nil {
-			log.Error("error: ", slog.String("err", err.Error()))
-			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   "Ошибка получения данных",
-			})
-			if err != nil {
-				log.Error("error sending message", slog.String("err", err.Error()))
+		var data []byte
+		var text string
+
+		// если не диаграмма, то получаем данные и текст
+		if !(strings.Contains(msg.Text, "диаграмма")) {
+			var err2 error
+			// формируем данные и картинку таблицы
+			data, text, err2 = financeOPIUService(ctx, log, storage, msg.Text, cfg.GOOGLE_API_KEY)
+			if err2 != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+				_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: update.Message.Chat.ID,
+					Text:   "Ошибка получения данных",
+				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
+			}
+			//return
+		} else {
+			var err2 error
+			data, text, err2 = financeChartService(ctx, log, storage, msg.Text, cfg.GOOGLE_API_KEY)
+			if err2 != nil {
+				log.Error("error: ", slog.String("err", err.Error()))
+				_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: update.Message.Chat.ID,
+					Text:   "Ошибка получения данных",
+				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
+				//return
 			}
 		}
 
@@ -75,6 +97,5 @@ func financeMainHandler(log1 *slog.Logger, cfg *config.Config, storage *storage.
 		if err != nil {
 			log.Error("error sending file", slog.String("err", err.Error()))
 		}
-
 	}
 }
