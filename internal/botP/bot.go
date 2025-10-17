@@ -37,7 +37,7 @@ func NewApp(ctx context.Context, cfg *config.Config, log *slog.Logger) (*BotApp,
 	}
 
 	opts := []bot.Option{
-		bot.WithMiddlewares(middleware.CheckUser(storage, log)),
+		bot.WithMiddlewares(middleware.Recover(log), middleware.CheckUser(storage, log)),
 		bot.WithDefaultHandler(defaultHandler),
 		bot.WithCheckInitTimeout(cfg.BOT_TIMEOUT),
 	}

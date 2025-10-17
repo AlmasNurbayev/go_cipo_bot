@@ -32,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	cfg := config.Mustload(configEnv)
-	Log := logger.InitLogger(cfg.ENV)
+	Log := logger.InitLogger(cfg.ENV, cfg.LOG_ERROR_PATH)
 	Log.Info("=== start kofd_updater ===")
 
 	// проверяем наличие дат

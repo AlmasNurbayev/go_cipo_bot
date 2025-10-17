@@ -460,7 +460,7 @@ func financeChartService(ctx context.Context, log1 *slog.Logger, storage *storag
 	opt.XAxis.LabelRotation = charts.DegreesToRadians(45)
 	opt.XAxis.LabelFontStyle.FontSize = 8
 	opt.YAxis[0].SplitLineShow = charts.Ptr(true)
-	opt.YAxis[1].Min = charts.Ptr(0.0)
+	//opt.YAxis[1].Min = charts.Ptr(0.0)
 
 	opt.Legend = charts.LegendOption{
 		SeriesNames: []string{

@@ -41,6 +41,8 @@ type Config struct {
 	CIPO_IMAGES_URL   string `env:"CIPO_IMAGES_URL"`   // в бэкенд CIPO - статика
 	CIPO_QNT_URL      string `env:"CIPO_QNT_URL"`      // в бэкенд CIPO - остатки и цены склада
 
+	LOG_ERROR_PATH string `env:"LOG_ERROR_PATH"`
+
 	ENV string `env:"ENV"`
 }
 
@@ -60,6 +62,10 @@ func Mustload(path string) *Config {
 
 	if cfg.SECRET_KEY != "" {
 		cfg.SECRET_BYTE = utils.DeriveKeyFromSecret(cfg.SECRET_KEY)
+	}
+
+	if cfg.LOG_ERROR_PATH == "" {
+		cfg.LOG_ERROR_PATH = "_volume_assets/error.log"
 	}
 
 	return cfg

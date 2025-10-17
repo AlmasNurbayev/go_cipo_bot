@@ -23,7 +23,7 @@ func main() {
 	flag.Parse()
 
 	cfg := config.Mustload(configEnv)
-	Log := logger.InitLogger(cfg.ENV)
+	Log := logger.InitLogger(cfg.ENV, cfg.LOG_ERROR_PATH)
 	Log.Info("=== start bot ===")
 
 	Log.Info("load config: ")
@@ -49,12 +49,6 @@ func main() {
 		panic(err)
 	}
 
-	// kafka, err := botP.NewKafkaReader(ctx, cfg, Log, botApp.Bot, botApp.Storage)
-	// if err != nil {
-	// 	Log.Error("error create kafka app", slog.String("err", err.Error()))
-	// 	panic(err)
-	// }
-
 	go func() {
 		botApp.Run()
 	}()
@@ -79,3 +73,27 @@ func main() {
 	Log.Warn("bot, http server, nats stopped")
 	Log.Info("=== end bot ===")
 }
+
+// нужно оборачивать все горутины, которые могут паниковать и не имеют перехвата и лога паники
+// для безопасного запуска горутины с логированием паник и ошибок, и вызовом cancel()
+// func safeGoCancel(ctx context.Context, cancel context.CancelFunc, log *slog.Logger, name string, fn func() error) {
+// 	go func() {
+// 		defer func() {
+// 			if r := recover(); r != nil {
+// 				log.Error("panic recovered",
+// 					slog.String("goroutine", name),
+// 					slog.Any("panic", r),
+// 					slog.String("stack", string(debug.Stack())),
+// 				)
+// 				cancel() // аварийное завершение приложения
+// 			}
+// 		}()
+// 		if err := fn(); err != nil {
+// 			log.Error("goroutine error",
+// 				slog.String("goroutine", name),
+// 				slog.String("error", err.Error()),
+// 			)
+// 			cancel()
+// 		}
+// 	}()
+// }
