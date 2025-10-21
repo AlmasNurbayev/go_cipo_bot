@@ -87,7 +87,7 @@ func CipoGetProduct(cfg *config.Config,
 	var response = ProductByIdResponse{}
 
 	op := "api.CipoGetProduct"
-	log := log1.With(slog.String("op", op))
+	log := log1.With(slog.String("op", op), slog.String("name_1c", name_1c))
 
 	base, err := url.Parse(cfg.CIPO_PRODUCTS_URL)
 	if err != nil {
