@@ -189,6 +189,7 @@ func getAnalyticsService(ctx context.Context, mode string, storage storageI,
 	totalOperationsSum := 0.0
 	totalSum := 0.0
 	totalDiscount := 0.0
+	totalReturns := 0.0
 	for _, item := range data {
 		if item.Type_operation != 1 {
 			continue
@@ -206,6 +207,7 @@ func getAnalyticsService(ctx context.Context, mode string, storage storageI,
 			if item.Subtype.Int64 == 3 {
 				// Возврат, минусом
 				totalSum -= cheque.Sum
+				totalReturns += cheque.Sum
 				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Count: 1, Sum: -cheque.Sum})
 				days = append(days, modelsI.Simple{Item: item.Operationdate.Time.Format("02.01.2006"), Count: 1, Sum: -cheque.Sum})
 				monthes = append(monthes, modelsI.Simple{Item: item.Operationdate.Time.Format("2006.01"), Count: 1, Sum: -cheque.Sum})
@@ -262,9 +264,13 @@ func getAnalyticsService(ctx context.Context, mode string, storage storageI,
 	sb.WriteString("<b>Кассы:</b>\n")
 	sb.WriteString(utils.StructToString(kassas, false, true) + "\n\n")
 
-	sb.WriteString("<b>Примененные скидки от " + utils.FormatNumber(totalOperationsSum) + "</b>\n")
-	sb.WriteString(" =" + utils.FormatNumber(totalDiscount) + " ₸ или " +
+	sb.WriteString("<b>Примененные скидки </b>от " + utils.FormatNumber(totalOperationsSum) + "\n")
+	sb.WriteString(" = " + utils.FormatNumber(totalDiscount) + " ₸ или " +
 		utils.FormatNumber(totalDiscount/totalSum*100) + "% \n")
+
+	sb.WriteString("<b>Возвраты </b> ")
+	sb.WriteString(" = " + utils.FormatNumber(totalReturns) + " ₸ или " +
+		utils.FormatNumber(totalReturns/totalSum*100) + "% \n")
 
 	if len([]rune(sb.String())) > 4096 {
 		return "сообщение слишком большое, сократите период", markups, err

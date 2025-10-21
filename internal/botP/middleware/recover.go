@@ -20,7 +20,6 @@ func Recover(log *slog.Logger) bot.Middleware {
 						slog.Any("recover", r),
 						slog.String("stack", string(debug.Stack())),
 					)
-					_ = log.Handler().(*slog.JSONHandler)
 					os.Exit(1)
 				}
 			}()

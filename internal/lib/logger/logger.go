@@ -70,13 +70,13 @@ func (h *splitHandler) Enabled(ctx context.Context, level slog.Level) bool {
 func (h *splitHandler) Handle(ctx context.Context, r slog.Record) error {
 	// всегда логируем в основной хендлер
 	if h.main.Enabled(ctx, r.Level) {
-		if err := h.main.Handle(ctx, r); err != nil {
+		if err := h.main.Handle(ctx, r.Clone()); err != nil {
 			return err
 		}
 	}
 	// ошибки и выше — дублируем в отдельный файл
 	if r.Level >= slog.LevelError && h.errs.Enabled(ctx, r.Level) {
-		if err := h.errs.Handle(ctx, r); err != nil {
+		if err := h.errs.Handle(ctx, r.Clone()); err != nil {
 			return err
 		}
 	}

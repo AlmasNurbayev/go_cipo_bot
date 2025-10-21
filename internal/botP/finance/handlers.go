@@ -61,7 +61,7 @@ func financeMainHandler(log1 *slog.Logger, cfg *config.Config, storage *storage.
 			// формируем данные и картинку таблицы
 			data, text, err2 = financeOPIUService(ctx, log, storage, msg.Text, cfg.GOOGLE_API_KEY)
 			if err2 != nil {
-				log.Error("error: ", slog.String("err", err.Error()))
+				log.Error("error: ", slog.String("err", err2.Error()))
 				_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: update.Message.Chat.ID,
 					Text:   "Ошибка получения данных",
