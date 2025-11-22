@@ -190,6 +190,7 @@ func getAnalyticsService(ctx context.Context, mode string, storage storageI,
 	totalSum := 0.0
 	totalDiscount := 0.0
 	totalReturns := 0.0
+	totalNominalSum := 0.0
 	for _, item := range data {
 		if item.Type_operation != 1 {
 			continue
@@ -214,6 +215,7 @@ func getAnalyticsService(ctx context.Context, mode string, storage storageI,
 				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Count: 1, Sum: -cheque.Sum})
 				kassas = append(kassas, modelsI.Simple{Item: item.Kassa_name.String, Count: 1, Sum: -cheque.Sum})
 				totalDiscount -= (cheque.NominalPrice - cheque.DiscountPrice) * float64(cheque.Qnt)
+				totalNominalSum -= cheque.NominalPrice * float64(cheque.Qnt)
 			} else {
 				totalSum += cheque.Sum
 				seasons = append(seasons, modelsI.Simple{Item: cheque.Season.String, Count: 1, Sum: cheque.Sum})
@@ -222,6 +224,7 @@ func getAnalyticsService(ctx context.Context, mode string, storage storageI,
 				vids = append(vids, modelsI.Simple{Item: cheque.VidModeli.String, Count: 1, Sum: cheque.Sum})
 				kassas = append(kassas, modelsI.Simple{Item: item.Kassa_name.String, Count: 1, Sum: cheque.Sum})
 				totalDiscount += (cheque.NominalPrice - cheque.DiscountPrice) * float64(cheque.Qnt)
+				totalNominalSum += cheque.NominalPrice * float64(cheque.Qnt)
 			}
 		}
 	}
@@ -264,9 +267,9 @@ func getAnalyticsService(ctx context.Context, mode string, storage storageI,
 	sb.WriteString("<b>Кассы:</b>\n")
 	sb.WriteString(utils.StructToString(kassas, false, true) + "\n\n")
 
-	sb.WriteString("<b>Примененные скидки </b>от " + utils.FormatNumber(totalOperationsSum) + "\n")
+	sb.WriteString("<b>Примененные скидки </b>от " + utils.FormatNumber(totalNominalSum) + "\n")
 	sb.WriteString(" = " + utils.FormatNumber(totalDiscount) + " ₸ или " +
-		utils.FormatNumber(totalDiscount/totalSum*100) + "% \n")
+		utils.FormatNumber(totalDiscount/totalNominalSum*100) + "% \n")
 
 	sb.WriteString("<b>Возвраты </b> ")
 	sb.WriteString(" = " + utils.FormatNumber(totalReturns) + " ₸ или " +
