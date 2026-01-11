@@ -28,6 +28,7 @@ type Config struct {
 
 	KOFD_PASSAUTH_URL   string `env:"KOFD_PASSAUTH_URL"`
 	KOFD_OPERATIONS_URL string `env:"KOFD_OPERATIONS_URL"`
+	KOFD_NATS_ENABLE    bool   `env:"KOFD_NATS_ENABLE" envDefault:"true"`
 
 	KAFKA_PORT         string `env:"KAFKA_PORT"`
 	KAFKA_SERVICE_NAME string `env:"KAFKA_SERVICE_NAME"`

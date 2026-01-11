@@ -134,15 +134,17 @@ func main() {
 		storage.Close()
 		return
 	}
-	Log.Info("make new messages", slog.Int("count", len(messages)))
 
 	// отправляем операции в брокер
-	if len(messages) == 0 {
-		Log.Info("no new updates for users")
-	} else {
-		err = kofd_updater_services.SendToNats(cfg, Log, messages)
-		if err != nil {
-			Log.Error("Error broker send:", slog.String("err", err.Error()))
+	if cfg.KOFD_NATS_ENABLE {
+		Log.Info("make new messages", slog.Int("count", len(messages)))
+		if len(messages) == 0 {
+			Log.Info("no new updates for users")
+		} else {
+			err = kofd_updater_services.SendToNats(cfg, Log, messages)
+			if err != nil {
+				Log.Error("Error broker send:", slog.String("err", err.Error()))
+			}
 		}
 	}
 
