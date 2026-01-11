@@ -43,7 +43,9 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 	// делим блок с товарами на отдельные блоки по 1 товару
 	for i := startGoodsBlock; i <= endGoodsBlock; i++ {
 		line := dataArr[i]
-
+		if strings.Contains(line, "GTIN") || strings.Contains(line, "NTIN") {
+			continue
+		}
 		if strings.HasSuffix(strings.TrimSpace(line), "₸") {
 			currentBlock = currentBlock + line
 			goodsBlocks = append(goodsBlocks, currentBlock)
@@ -54,7 +56,6 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 	}
 
 	for _, block := range goodsBlocks {
-		//fmt.Println(block)
 		trimmedName, findedSize := trimNameSize(block)
 		positionSum := strings.Index(block, "₸")
 		price, err := trimPrice(block, positionSum)
