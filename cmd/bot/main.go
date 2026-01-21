@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP"
@@ -35,7 +36,10 @@ func main() {
 	fmt.Println(string(*cfgBytes))
 	Log.Debug("debug message is enabled")
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+		syscall.SIGINT)
 	defer cancel()
 
 	botApp, err := botP.NewApp(ctx, cfg, Log)
