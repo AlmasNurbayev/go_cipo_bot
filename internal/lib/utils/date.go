@@ -194,7 +194,7 @@ func GetLastDaysPeriodPrevYear(days int) (time.Time, time.Time, []models.Transac
 	return start, end, dataDays, nil
 }
 
-// GetCurrentYearPeriod возвращает начало и конец периода, массив с месяцами текуцщего года
+// GetCurrentYearPeriod возвращает начало и конец периода, массив с месяцами текущего года
 // где N - количество дней, переданное в параметре monthes
 func GetCurrentYearPeriod(monthes int) (time.Time, time.Time, []models.TransactionsByDays, error) {
 
@@ -247,5 +247,40 @@ func GetPrevYearPeriod(monthes int) (time.Time, time.Time, []models.Transactions
 			Sum:   0,
 		})
 	}
+	return start, end, dataMonthes, nil
+}
+
+func GetLastMonthesPeriod(monthes int) (time.Time, time.Time, []models.TransactionsByMonthes, error) {
+
+	now := time.Now()
+	start := time.Date(
+		now.Year(),
+		now.Month(),
+		1,
+		0, 0, 0, 0,
+		now.Location(),
+	).AddDate(0, -monthes, 0)
+	// конец сегодняшнего дня
+	end := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, int(time.Second-time.Nanosecond), now.Location())
+	var dataMonthes []models.TransactionsByMonthes
+
+	for i := range monthes {
+		d := start.AddDate(0, i, 0) // от текущей даты вперед
+		dataMonthes = append(dataMonthes, models.TransactionsByMonthes{
+			Month: int(d.Month()),
+			Year:  d.Year(),
+			Count: 0,
+			Sum:   0,
+		})
+	}
+	// добавляем последний месяц
+	dataMonthes = append(dataMonthes, models.TransactionsByMonthes{
+		Month: int(end.Month()),
+		Year:  end.Year(),
+		Count: 0,
+		Sum:   0,
+	})
+	//slices.Reverse(dataMonthes)
+
 	return start, end, dataMonthes, nil
 }

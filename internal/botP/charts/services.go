@@ -263,3 +263,91 @@ func chartsCurrentYear(ctx context.Context, storage *storage.Storage,
 	return buf, sumCurrent, sumPrev, nil
 
 }
+
+func charts12Monthes(ctx context.Context, storage *storage.Storage, log1 *slog.Logger, monthesCount int) ([]byte, error) {
+	op := "charts.charts12Monthes"
+	log := log1.With(slog.String("op", op))
+
+	log.Info("charts12Monthes")
+
+	start, end, dataMonthes, err := utils.GetLastMonthesPeriod(monthesCount*2 - 1)
+	if err != nil {
+		log.Error("error getting last days period", slog.String("err", err.Error()))
+		return nil, err
+	}
+	dataOperations, err := storage.ListTransactionsByDate(ctx, start, end)
+	if err != nil {
+		log.Error("error listing transactions by date", slog.String("err", err.Error()))
+		return nil, err
+	}
+
+	for index, row := range dataMonthes {
+		for _, d := range dataOperations {
+			if d.Type_operation != 1 {
+				continue
+			}
+			if d.Operationdate.Time.Year() == row.Year && int(d.Operationdate.Time.Month()) == row.Month {
+				dataMonthes[index].Count++
+				switch d.Subtype.Int64 {
+				case 2:
+					dataMonthes[index].Sum += d.Sum_operation.Float64
+				case 3:
+					dataMonthes[index].Sum -= d.Sum_operation.Float64
+				}
+			}
+		}
+	}
+
+	values := make([][]float64, 2)
+	var labels []string
+	for i := range dataMonthes {
+		if i+1 <= monthesCount {
+			values[0] = append(values[0], dataMonthes[i].Sum)
+			label := strconv.Itoa(dataMonthes[i].Month) + " " + strconv.Itoa(dataMonthes[i].Year)
+			label += "-" + strconv.Itoa(dataMonthes[i+monthesCount].Year)
+			labels = append(labels, label)
+		} else {
+			values[1] = append(values[1], dataMonthes[i].Sum)
+		}
+	}
+	opt := charts.NewBarChartOptionWithData(values)
+	opt.Title.Text = "Обороты за последние " + strconv.Itoa(monthesCount) + " месяцев"
+	opt.Title.Offset = charts.OffsetStr{
+		Left: "90",
+	}
+	opt.XAxis.Labels = labels
+	opt.XAxis.LabelRotation = 0.92
+	opt.XAxis.LabelFontStyle = charts.FontStyle{
+		FontSize: 7,
+	}
+	opt.XAxis.LabelOffset = charts.OffsetInt{
+		Top:  0,
+		Left: 15,
+	}
+	opt.SeriesList[0].MarkLine.AddLines(charts.SeriesMarkTypeAverage)
+	opt.SeriesList[1].MarkLine.AddLines(charts.SeriesMarkTypeAverage)
+	opt.SeriesLabelPosition = charts.PositionTop
+	show := true
+	opt.SeriesList[0].Label.Show = &show
+	opt.SeriesList[1].Label.Show = &show
+	//opt.BarWidth = 10
+
+	p := charts.NewPainter(charts.PainterOptions{
+		Width:  900,
+		Height: 600,
+	})
+
+	err = p.BarChart(opt)
+	if err != nil {
+		log.Error("error creating bar chart", slog.String("err", err.Error()))
+		return nil, err
+	}
+
+	buf, err := p.Bytes()
+	if err != nil {
+		log.Error("error creating bar chart", slog.String("err", err.Error()))
+		return nil, err
+	}
+
+	return buf, nil
+}

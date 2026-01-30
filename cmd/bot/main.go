@@ -60,12 +60,14 @@ func main() {
 		httpApp.Run()
 	}()
 
-	go func() {
-		if err := botP.RunNatsConsumer(ctx, cfg, Log, botApp.Bot, botApp.Storage); err != nil {
-			Log.Error("error run nats consumer", slog.String("err", err.Error()))
-			cancel()
-		}
-	}()
+	if cfg.NATS_ENABLE {
+		go func() {
+			if err := botP.RunNatsConsumer(ctx, cfg, Log, botApp.Bot, botApp.Storage); err != nil {
+				Log.Error("error run nats consumer", slog.String("err", err.Error()))
+				cancel()
+			}
+		}()
+	}
 
 	<-ctx.Done()
 	Log.Warn("received signal DONE signal")

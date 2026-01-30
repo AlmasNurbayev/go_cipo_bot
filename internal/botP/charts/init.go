@@ -30,6 +30,7 @@ func initKeyboard(ctx context.Context, b *bot.Bot, update *models.Update) {
 			{
 				{Text: "график 30 дней"},
 				{Text: "график этот год"},
+				{Text: "график 12 месяцев"},
 			},
 		},
 		ResizeKeyboard:  true,

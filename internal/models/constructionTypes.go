@@ -63,3 +63,10 @@ type TransactionsByDays struct {
 	Count int
 	Sum   float64
 }
+
+type TransactionsByMonthes struct {
+	Month int
+	Year  int
+	Count int
+	Sum   float64
+}
