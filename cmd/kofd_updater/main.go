@@ -136,7 +136,7 @@ func main() {
 	}
 
 	// отправляем операции в брокер
-	if cfg.KOFD_NATS_ENABLE {
+	if cfg.NATS_ENABLE {
 		Log.Info("make new messages", slog.Int("count", len(messages)))
 		if len(messages) == 0 {
 			Log.Info("no new updates for users")
