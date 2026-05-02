@@ -14,7 +14,7 @@ import (
 
 func otherSiteParserJSONlogHandler(log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
-		op := "summary.financeMainHandler"
+		op := "summary.otherSiteParserJSONlogHandler"
 		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.Message.From.ID)), slog.String("user name", update.Message.From.Username))
 		msg := update.Message
 		if msg == nil {
