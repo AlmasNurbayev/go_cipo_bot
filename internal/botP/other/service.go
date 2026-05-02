@@ -33,7 +33,9 @@ func ParseAppLog(filePath string, lineLimit int) ([]LogEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ошибка: файла нет или нет доступа: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Находим позицию, с которой начинаются последние N строк
 	offset, err := getLastLinesOffset(file, lineLimit)
