@@ -8,6 +8,7 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/charts"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/finance"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/middleware"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/other"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/qnt"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/summary"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
@@ -62,6 +63,8 @@ func (b *BotApp) Run() {
 	charts.Init(b.Bot, b.Storage, b.Log, b.Cfg)
 	qnt.Init(b.Bot, b.Storage, b.Log, b.Cfg)
 	finance.Init(b.Bot, b.Storage, b.Log, b.Cfg)
+	other.Init(b.Bot, b.Storage, b.Log, b.Cfg)
+
 	b.Log.Info("bot try started", slog.String("port", "8443"))
 	b.Bot.Start(b.Ctx)
 }

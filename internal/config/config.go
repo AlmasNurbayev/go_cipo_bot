@@ -42,6 +42,8 @@ type Config struct {
 	CIPO_IMAGES_URL   string `env:"CIPO_IMAGES_URL"`   // в бэкенд CIPO - статика
 	CIPO_QNT_URL      string `env:"CIPO_QNT_URL"`      // в бэкенд CIPO - остатки и цены склада
 
+	SITE_PARSER_JSON_LOG_PATH string `env:"SITE_PARSER_JSON_LOG_PATH"`
+
 	LOG_ERROR_PATH string `env:"LOG_ERROR_PATH"`
 
 	ENV string `env:"ENV"`
