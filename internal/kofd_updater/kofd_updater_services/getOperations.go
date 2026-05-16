@@ -136,6 +136,17 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 					log.Info("get product from Cipo", slog.String("name", name.Name))
 					names[nameIndex].Season = null.StringFrom(productData.Product_group.Name_1c)
 					names[nameIndex].VidModeli = null.StringFrom(productData.Vid_modeli.Name_1c)
+					names[nameIndex].KaspiInSale = productData.Kaspi_in_sale
+					// считаем суммарный остаток по размеру из чека по всем складам
+					if names[nameIndex].Size.Valid {
+						var totalQnt float32
+						for _, qpr := range productData.Qnt_price_registry {
+							if qpr.Size_name_1c == names[nameIndex].Size.String {
+								totalQnt += qpr.Qnt
+							}
+						}
+						names[nameIndex].RemainingQnt = int(totalQnt)
+					}
 					// ищем активную основную картинку
 					if len(productData.Image_registry) > 1 {
 						findIndex := slices.IndexFunc(productData.Image_registry, func(image api.ImageRegistryResponse) bool { return image.Active && image.Main })

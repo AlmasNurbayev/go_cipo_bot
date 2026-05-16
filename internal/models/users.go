@@ -7,4 +7,5 @@ type UserEntity struct {
 	Telegram_id        string     `json:"telegram_id" db:"telegram_id"`
 	Telegram_name      string     `json:"telegram_name" db:"telegram_name"`
 	Transaction_cursor null.Int64 `json:"transaction_cursor" db:"transaction_cursor"`
+	Role               string     `json:"role" db:"role"`
 }

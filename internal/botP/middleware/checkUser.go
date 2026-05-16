@@ -28,7 +28,7 @@ func CheckUser(storage storageI, log1 *slog.Logger) bot.Middleware {
 
 			// ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			// defer cancel()
-			isValid, err := UserIsValid(ctx, log, storage, strconv.Itoa(int(update.Message.From.ID)))
+			user, err := GetUserByTelegramId(ctx, log, storage, strconv.Itoa(int(update.Message.From.ID)))
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -40,11 +40,22 @@ func CheckUser(storage storageI, log1 *slog.Logger) bot.Middleware {
 				}
 				return
 			}
-			if !isValid {
+			if user == nil {
 				log.Warn("denied: ", slog.String("err", "user not authorized"))
 				_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: update.Message.Chat.ID,
 					Text:   "👎 User not authorized",
+				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
+				return
+			}
+			if user.Role == "kaspi_manager" {
+				log.Info("kaspi_manager blocked from commands", slog.String("user", user.Telegram_id))
+				_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: update.Message.Chat.ID,
+					Text:   "ℹ️ Вам доступны только уведомления о продажах Kaspi-товаров",
 				})
 				if err != nil {
 					log.Error("error sending message", slog.String("err", err.Error()))
@@ -57,21 +68,33 @@ func CheckUser(storage storageI, log1 *slog.Logger) bot.Middleware {
 	}
 }
 
-func UserIsValid(ctx context.Context, log1 *slog.Logger,
-	storage storageI, telegram_id string) (bool, error) {
-	op := "summary.services.ListUsersService"
+// GetUserByTelegramId возвращает пользователя по telegram_id или nil, если не найден
+func GetUserByTelegramId(ctx context.Context, log1 *slog.Logger,
+	storage storageI, telegram_id string) (*modelsI.UserEntity, error) {
+	op := "middleware.GetUserByTelegramId"
 	log := log1.With(slog.String("op", op))
 
 	users, err := storage.ListUsers(ctx)
 	if err != nil {
 		log.Error("", slog.String("err", err.Error()))
-		return false, err
+		return nil, err
 	}
 	for _, user := range users {
 		if user.Telegram_id == telegram_id {
-			return true, nil
+			return &user, nil
 		}
 	}
 
-	return false, nil
+	return nil, nil
 }
+
+// UserIsValid проверяет, есть ли пользователь в списке (обратная совместимость)
+func UserIsValid(ctx context.Context, log1 *slog.Logger,
+	storage storageI, telegram_id string) (bool, error) {
+	user, err := GetUserByTelegramId(ctx, log1, storage, telegram_id)
+	if err != nil {
+		return false, err
+	}
+	return user != nil, nil
+}
+

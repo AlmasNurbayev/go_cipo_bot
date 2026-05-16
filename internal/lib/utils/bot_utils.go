@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -196,9 +197,14 @@ func ConvertNewOperationToMessageText(tx modelsI.TransactionEntity,
 		GetTypePaymentText(tx) + " " + sumStr + "</b>" + "\n")
 
 	for _, item := range tx.ChequeJSON {
+		remainingStr := ""
+		if item.Size.Valid {
+			remainingStr = " [ост: " + strconv.Itoa(item.RemainingQnt) + "]"
+		}
 		sb.WriteString(
 			`<a href="` + item.MainImageURL.String + `">` +
 				"• " + item.Name + " (" + item.Size.String + ") ₸ " + FormatNumber(item.Sum) +
+				remainingStr +
 				"</a>" + "\n",
 		)
 	}

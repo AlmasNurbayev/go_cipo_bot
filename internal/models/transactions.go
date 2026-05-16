@@ -43,6 +43,8 @@ type ChequeJSONElement struct {
 	DiscountPrice float64     `json:"discount_price" db:"discount_price"`
 	Sum           float64     `json:"sum" db:"sum"`
 	Qnt           int         `json:"qnt" db:"qnt"`
+	KaspiInSale   bool        `json:"kaspi_in_sale" db:"kaspi_in_sale"`
+	RemainingQnt  int         `json:"remaining_qnt" db:"remaining_qnt"`
 }
 
 type ChequeJSONList []ChequeJSONElement

@@ -26,6 +26,7 @@ services:
       - KOFD_OPERATIONS_URL=${KOFD_OPERATIONS_URL}
       - KAFKA_PORT=${KAFKA_PORT}
       - KAFKA_SERVICE_NAME=${KAFKA_SERVICE_NAME}
+      - NATS_ENABLE=${NATS_ENABLE}
       - NATS_NAME=${NATS_NAME}
       - NATS_PORT=${NATS_PORT}
       - NATS_MONITORING_PORT=${NATS_MONITORING_PORT}
@@ -37,7 +38,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ~/scripts:/app/scripts
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:${HTTP_PORT}/healthz']
+      test: [ 'CMD', 'curl', '-f', 'http://localhost:${HTTP_PORT}/healthz' ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -63,7 +64,7 @@ services:
     ports:
       # - '${HTTP_PORT}:${HTTP_PORT}'
       - '${POSTGRES_PORT}:5432'
-    command: ['postgres', '-c', 'config_file=/etc/postgresql/postgresql.conf']
+    command: [ 'postgres', '-c', 'config_file=/etc/postgresql/postgresql.conf' ]
     volumes:
       - ./pg_conf/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./_volume_db/:/var/lib/postgresql/data
@@ -76,15 +77,10 @@ services:
       - ${NATS_MONITORING_PORT}:${NATS_MONITORING_PORT} # HTTP мониторинг
       # - "6222:6222"   # кластеринг
     command: >
-      -js
-      -m ${NATS_MONITORING_PORT}
-      --server_name ${NATS_NAME}
-      --store_dir /data/jetstream
-      --config /etc/nats/nats-server.conf
+      -js -m ${NATS_MONITORING_PORT} --server_name ${NATS_NAME} --store_dir /data/jetstream --config /etc/nats/nats-server.conf
     volumes:
       - ./_volume_nats:/data/jetstream
       - ./nats_conf/nats-server.conf:/etc/nats/nats-server.conf
-
   # kafka:
   #   image: bitnami/kafka:4.0.0
   #   container_name: kafka

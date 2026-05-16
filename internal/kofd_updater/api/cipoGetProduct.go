@@ -31,6 +31,7 @@ type ProductByIdResponse struct {
 	Product_vid_id    int64       `json:"product_vid_id"`
 	Vid_modeli_id     null.Int64  `json:"vid_modeli_id"`
 	Registrator_id    int64       `json:"registrator_id"`
+	Kaspi_in_sale     bool        `json:"kaspi_in_sale"`
 
 	Changed_date null.Time `json:"changed_date" db:"changed_date"`
 	Create_date  time.Time `json:"create_date" db:"create_date"`
