@@ -25,7 +25,7 @@ func otherSiteParserJSONlogHandler(log1 *slog.Logger, cfg *config.Config) bot.Ha
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 		}
-		logs, err := ParseAppLog(cfg.SITE_PARSER_JSON_LOG_PATH, 300)
+		logs, err := ParseAppLog(cfg.SITE_PARSER_JSON_LOG_PATH, 800)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
