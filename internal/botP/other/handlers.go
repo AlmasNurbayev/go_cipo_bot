@@ -51,7 +51,11 @@ func otherSiteParserJSONlogHandler(log1 *slog.Logger, cfg *config.Config) bot.Ha
 			default:
 				statusColor = "🟡 "
 			}
-			txt.WriteString(statusColor + item.Date + " / " + item.BasePrefix + " / " + fmt.Sprint(item.CountQnt) + "\n")
+			imgStr := ""
+			if item.IsContainImages {
+				imgStr = "🖼️ "
+			}
+			txt.WriteString(statusColor + imgStr + item.Date + " / " + item.BasePrefix + " / " + fmt.Sprint(item.CountQnt) + "\n")
 		}
 		log.Info("other called button", slog.String("text", msg.Text))
 		_, err = b.SendMessage(ctx, &bot.SendMessageParams{

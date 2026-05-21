@@ -10,11 +10,12 @@ import (
 )
 
 type LogEntry struct {
-	Date       string `json:"date"`
-	Status     string `json:"status"`
-	BasePrefix string `json:"basePrefix"`
-	CountQnt   int    `json:"countQnt"`
-	NameFile   string `json:"nameFile"`
+	Date            string `json:"date"`
+	Status          string `json:"status"`
+	BasePrefix      string `json:"basePrefix"`
+	CountQnt        int    `json:"countQnt"`
+	IsContainImages bool   `json:"isContainImages"`
+	NameFile        string `json:"nameFile"`
 }
 
 // RawLogLine вспомогательная структура для парсинга JSON строки лога
@@ -73,6 +74,13 @@ func ParseAppLog(filePath string, lineLimit int) ([]LogEntry, error) {
 				currentEntry.BasePrefix = line.BasePrefix
 				currentEntry.CountQnt = line.TotalQnt
 				currentEntry.NameFile = line.NameLog
+			}
+		}
+
+		// успешный импорт картинок
+		if strings.Contains(msgLower, "images exists and copied successfully") {
+			if currentEntry != nil {
+				currentEntry.IsContainImages = true
 			}
 		}
 
