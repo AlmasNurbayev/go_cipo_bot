@@ -203,7 +203,7 @@ func ConvertNewOperationToMessageText(tx modelsI.TransactionEntity,
 		}
 		sb.WriteString(
 			`<a href="` + item.MainImageURL.String + `">` +
-				"• " + item.Name + " (" + item.Size.String + ") ₸ " + FormatNumber(item.Sum) +
+				"• " + item.VidModeli.String + " " + item.Name + " (" + item.Size.String + ") ₸ " + FormatNumber(item.Sum) +
 				remainingStr +
 				"</a>" + "\n",
 		)
