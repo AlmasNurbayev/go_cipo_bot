@@ -124,7 +124,7 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 						ReplyMarkup: &markups,
 					})
 					if err != nil {
-						log.Error("Send message error", slog.Any("err", err), slog.Any("ChatID", data.Telegram_id))
+						log.Error("Send message error", slog.Any("err", err), slog.Any("ChatID", data.Telegram_id), slog.Any("user_id", data.UserId))
 					}
 				}
 
