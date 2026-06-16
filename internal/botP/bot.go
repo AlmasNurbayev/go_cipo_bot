@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
+	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/charts"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/botP/finance"
@@ -70,9 +72,14 @@ func (b *BotApp) Run() {
 }
 
 func (b *BotApp) Stop() {
-	_, err := b.Bot.Close(b.Ctx)
+	// создаем отдельный контекст для закрытия
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err := b.Bot.Close(shutdownCtx)
 	if err != nil {
-		b.Log.Error("error closing bot", slog.String("err", err.Error()))
+		before, _, _ := strings.Cut(err.Error(), ":")
+		b.Log.Error("error closing bot", slog.String("err", before))
 	}
 	b.Storage.Close()
 }
