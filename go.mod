@@ -1,11 +1,11 @@
 module github.com/AlmasNurbayev/go_cipo_bot
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/georgysavva/scany/v2 v2.1.4
-	github.com/go-analyze/charts v0.5.16
+	github.com/go-analyze/charts v0.6.0
 	github.com/go-telegram/bot v1.21.0
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/guregu/null/v5 v5.0.0
@@ -14,13 +14,13 @@ require (
 	github.com/kr/pretty v0.3.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/nats-io/nats.go v1.44.0
-	golang.org/x/sync v0.15.0
-	golang.org/x/text v0.26.0
+	golang.org/x/sync v0.21.0
+	golang.org/x/text v0.38.0
 )
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/go-analyze/bulk v0.1.0 // indirect
+	github.com/go-analyze/bulk v0.1.4 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -35,6 +35,6 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/image v0.24.0 // indirect
+	golang.org/x/image v0.43.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 )

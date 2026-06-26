@@ -14,7 +14,6 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 	"github.com/go-analyze/charts"
-	"github.com/kr/pretty"
 )
 
 func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage.Storage,
@@ -452,14 +451,14 @@ func financeChartService(ctx context.Context, log1 *slog.Logger, storage *storag
 		values[1] = append(values[1], groupOpiuData[i].Costs.Sum)
 		values[2] = append(values[2], float64(groupOpiuData[i].Profit))
 	}
-	pretty.Log(values)
+	//pretty.Log(values)
 
 	opt := charts.NewBarChartOptionWithData(values)
 	opt.Title.Text = "Крайние месяцы, этот год и предыдущий"
-	opt.XAxis.Labels = labels
-	opt.XAxis.LabelRotation = charts.DegreesToRadians(45)
-	opt.XAxis.LabelFontStyle.FontSize = 8
-	opt.YAxis[0].SplitLineShow = charts.Ptr(true)
+	opt.CategoryAxis.Labels = labels
+	opt.CategoryAxis.LabelRotation = charts.DegreesToRadians(45)
+	opt.CategoryAxis.LabelFontStyle.FontSize = 8
+	opt.ValueAxis[0].SplitLineShow = charts.Ptr(true)
 	//opt.YAxis[1].Min = charts.Ptr(0.0)
 
 	opt.Legend = charts.LegendOption{
@@ -473,6 +472,7 @@ func financeChartService(ctx context.Context, log1 *slog.Logger, storage *storag
 	show := true
 	opt.SeriesList[0].Label.Show = &show
 	opt.SeriesList[1].Label.Show = &show
+	opt.SeriesList[2].Label.Show = &show
 	//opt.BarWidth = 10
 
 	p := charts.NewPainter(charts.PainterOptions{

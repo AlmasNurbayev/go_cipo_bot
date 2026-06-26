@@ -93,9 +93,10 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 	}
 
 	falseShow := false
-	opt := charts.NewHorizontalBarChartOptionWithData(values)
+	opt := charts.NewBarChartOptionWithData(values)
 	opt.Title.Text = "Крайние 30 дней, сейчас и год назад"
-	opt.YAxis.Labels = labels
+	opt.Horizontal = true
+	opt.CategoryAxis.Labels = labels
 	opt.Legend = charts.LegendOption{
 		SeriesNames: []string{
 			dataDays[0].Date.Format("2006.01"), dataDaysPrev[0].Date.Format("2006.01"),
@@ -116,14 +117,14 @@ func charts30Days(ctx context.Context, storage *storage.Storage, log1 *slog.Logg
 	show := true
 	opt.SeriesList[0].Label.Show = &show
 	opt.SeriesList[1].Label.Show = &show
-	opt.BarHeight = 10
+	opt.BarSize = 0.6
 
 	p := charts.NewPainter(charts.PainterOptions{
 		Width:  600,
 		Height: 1000,
 	})
 
-	err = p.HorizontalBarChart(opt)
+	err = p.BarChart(opt)
 	if err != nil {
 		log.Error("error creating bar chart", slog.String("err", err.Error()))
 		return nil, 0, 0, err
@@ -221,7 +222,7 @@ func chartsCurrentYear(ctx context.Context, storage *storage.Storage,
 
 	opt := charts.NewBarChartOptionWithData(values)
 	opt.Title.Text = "Крайние месяцы, этот год и предыдущий"
-	opt.XAxis.Labels = labels
+	opt.CategoryAxis.Labels = labels
 	opt.Legend = charts.LegendOption{
 		SeriesNames: []string{
 			time.Now().Format("2006"),
@@ -315,12 +316,12 @@ func charts12Monthes(ctx context.Context, storage *storage.Storage, log1 *slog.L
 	opt.Title.Offset = charts.OffsetStr{
 		Left: "90",
 	}
-	opt.XAxis.Labels = labels
-	opt.XAxis.LabelRotation = 0.92
-	opt.XAxis.LabelFontStyle = charts.FontStyle{
+	opt.CategoryAxis.Labels = labels
+	opt.CategoryAxis.LabelRotation = 0.92
+	opt.CategoryAxis.LabelFontStyle = charts.FontStyle{
 		FontSize: 7,
 	}
-	opt.XAxis.LabelOffset = charts.OffsetInt{
+	opt.CategoryAxis.LabelOffset = charts.OffsetInt{
 		Top:  0,
 		Left: 15,
 	}
