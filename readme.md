@@ -24,7 +24,7 @@
 - github.com/golang-migrate/migrate
 
 # TODO
-- [ ] обновить пакет бота до релиза https://github.com/go-telegram/bot/releases/tag/v1.21.0
+- [v] обновить пакет бота до релиза https://github.com/go-telegram/bot/releases/tag/v1.21.0
 - [v] parserJSON - добавить загрузку закупочных цен, также добавить из 1С
 - [v] обновить экшны - actions/checkout@v6, docker/build-push-action@v7, docker/login-action@v4, docker/setup-buildx-action@v4, golangci/golangci-lint-action@v9
 - [v] 2026-01-20 - в блоке "Charts" сделать кнопку "12m" чтобы на 12 месяцев назад выводить итоги, блоками по 2 колонки (январь 2026 и январь 2025, февраль 2026 и февраль 2025 и т.д.)

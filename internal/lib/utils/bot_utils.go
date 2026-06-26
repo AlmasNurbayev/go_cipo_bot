@@ -199,7 +199,7 @@ func ConvertNewOperationToMessageText(tx modelsI.TransactionEntity,
 	for _, item := range tx.ChequeJSON {
 		remainingStr := ""
 		if item.Size.Valid {
-			remainingStr = " [ост: " + strconv.Itoa(item.RemainingQnt) + "]"
+			remainingStr = " [пр. ост: " + strconv.Itoa(item.RemainingQnt-1) + "]"
 		}
 		sb.WriteString(
 			`<a href="` + item.MainImageURL.String + `">` +

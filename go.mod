@@ -6,7 +6,7 @@ require (
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/go-analyze/charts v0.5.16
-	github.com/go-telegram/bot v1.16.0
+	github.com/go-telegram/bot v1.21.0
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/guregu/null/v5 v5.0.0
 	github.com/jackc/pgx/v5 v5.7.4
