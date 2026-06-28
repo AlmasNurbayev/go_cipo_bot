@@ -105,7 +105,9 @@ func CipoGetProduct(cfg *config.Config,
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return response, err
 	}
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))

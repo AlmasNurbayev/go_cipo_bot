@@ -102,20 +102,16 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 
 		// через горутины получаем чеки
 		var g errgroup.Group
-		semaphore := make(chan struct{}, 10)
+		g.SetLimit(10) // 10 одновременно работающих горутин
 
 		for index := range listEntity {
-			idx := index            // захват переменной цикла
-			semaphore <- struct{}{} // занимаем слот перед запуском горутины
-
 			g.Go(func() error {
-				defer func() { <-semaphore }() // освободить слот
 
 				cheque, err := api.KofdGetCheck(cfg, log, kassa.Knumber.String, token, listEntity[index].Ofd_id)
 				if err != nil {
 					log.Error("error on get check: ", slog.String("err", err.Error()))
 				}
-				log.Info("get and parse check from API", slog.String("id", listEntity[idx].Ofd_id))
+				log.Info("get and parse check from API", slog.String("id", listEntity[index].Ofd_id))
 				var sb strings.Builder
 				for _, item := range cheque.Data {
 					sb.WriteString(strings.TrimSpace(item.Text))
@@ -128,9 +124,9 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 				// перебираем товары из чека и запрашиваем дополнительную информацию от Cipo
 				for nameIndex, name := range names {
 					var productData api.ProductByIdResponse
-					productData, err := api.CipoGetProduct(cfg, log, name.Name, token)
-					if err != nil {
-						log.Error("error on get product from Cipo backend: ", slog.String("err", err.Error()),
+					productData, productErr := api.CipoGetProduct(cfg, log, name.Name, token)
+					if productErr != nil {
+						log.Error("error on get product from Cipo backend: ", slog.String("err", productErr.Error()),
 							slog.String("name", name.Name))
 					}
 					log.Info("get product from Cipo", slog.String("name", name.Name))
@@ -158,15 +154,15 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 					}
 				}
 
-				if err != nil && listEntity[idx].Type_operation == 1 {
+				if err != nil && listEntity[index].Type_operation == 1 {
 					// если продажа/возврат и не удалось получить товары из чека
 					log.Error("error on get goods from cheque: ", slog.String("err", err.Error()))
 					return err
 				}
 
 				// безопасно: каждый goroutine пишет только по своему индексу
-				listEntity[idx].Cheque = null.StringFrom(chequeString)
-				listEntity[idx].ChequeJSON = names
+				listEntity[index].Cheque = null.StringFrom(chequeString)
+				listEntity[index].ChequeJSON = names
 				return nil
 			})
 		}
