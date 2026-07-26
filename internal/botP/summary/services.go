@@ -332,6 +332,7 @@ func getOneCheckService(ctx context.Context, queryString string, storage storage
 			}
 			if item.NominalPrice-item.DiscountPrice != 0 {
 				sb.WriteString(" - скидка " + utils.FormatNumber(item.NominalPrice-item.DiscountPrice) + " ₸")
+				sb.WriteString(" от " + utils.FormatNumber(item.NominalPrice))
 			}
 			if item.Qnt > 1 {
 				sb.WriteString(" x" + strconv.Itoa(int(item.Qnt)))
