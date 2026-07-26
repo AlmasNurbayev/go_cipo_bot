@@ -1,12 +1,14 @@
 # TODO - переписать
 
 # Используем официальный образ Go
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 # Устанавливаем рабочую директорию в контейнере
 WORKDIR /app
 
-COPY go.mod ./
-RUN go mod download && go mod verify && go mod tidy
+# go.sum нужен, чтобы go mod verify реально сверял контрольные суммы,
+# а слой кэшировался до изменения зависимостей
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
 
 # Копируем файлы проекта
 COPY . .
@@ -18,7 +20,7 @@ RUN go build -o MIGRATOR ./cmd/migrator/main.go
 RUN go build -o KOFD_UPDATER ./cmd/kofd_updater/main.go
 
 # Используем stage 2: минимальный контейнер
-FROM alpine:3.21.3 AS final
+FROM alpine:3.24.1 AS final
 WORKDIR /app/
 
 # Добавляем необходимые зависимости

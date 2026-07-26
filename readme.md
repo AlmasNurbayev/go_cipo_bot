@@ -24,6 +24,8 @@
 - github.com/golang-migrate/migrate
 
 # TODO
+- [v] 2026-07-26 - обновить пакет бота до релиза https://github.com/go-telegram/bot/releases/tag/v1.22.0 (Bot API 10.1, Rich Messages) - ломающих изменений нет, новый API не используется
+- [v] 2026-07-26 - обновить Go до 1.26 (go.mod, Dockerfile), базовый образ alpine до 3.24.1, в CI добавить actions/setup-go@v6 перед линтом, в Dockerfile копировать go.sum в слой зависимостей
 - [v] обновить пакет бота до релиза https://github.com/go-telegram/bot/releases/tag/v1.21.0
 - [v] parserJSON - добавить загрузку закупочных цен, также добавить из 1С
 - [v] обновить экшны - actions/checkout@v6, docker/build-push-action@v7, docker/login-action@v4, docker/setup-buildx-action@v4, golangci/golangci-lint-action@v9
