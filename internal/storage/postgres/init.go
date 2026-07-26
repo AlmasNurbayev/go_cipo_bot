@@ -42,6 +42,8 @@ func NewStorage(ctx context.Context, DSN string, log1 *slog.Logger) (*Storage, e
 	}
 
 	if err := db.Ping(ctx); err != nil {
+		// пул уже создан - закрываем, иначе соединение повиснет до выхода процесса
+		db.Close()
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 

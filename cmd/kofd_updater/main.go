@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -15,9 +16,31 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/natsutil"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
+	"github.com/jackc/pgx/v5"
 )
 
 func main() {
+	// os.Exit пропускает defer, поэтому вызываем его только здесь - когда run
+	// уже полностью развернул стек и вся очистка отработала.
+	// Подробности ошибки run пишет в лог на месте
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+// rollbackIfOpen откатывает транзакцию, если она ещё открыта.
+// После успешного Commit pgx вернёт ErrTxClosed - это не ошибка
+func rollbackIfOpen(tx pgx.Tx, log *slog.Logger) {
+	// свой контекст: корневой к этому моменту может быть уже отменён по таймауту
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+		log.Error("Error rollback all db changes:", slog.String("err", err.Error()))
+	}
+}
+
+func run() error {
 	fmt.Println("reading config...")
 	var (
 		configEnv string
@@ -40,13 +63,13 @@ func main() {
 	// проверяем наличие дат
 	if firstDate == "" && lastDate == "" && days == "" {
 		Log.Error("not set dates - firstDate, lastDate or days")
-		return
+		return errors.New("not set dates - firstDate, lastDate or days")
 	}
 	if days != "" {
 		daysNumber, err := strconv.Atoi(days)
 		if err != nil {
 			Log.Error("not correct days", slog.String("err", err.Error()))
-			return
+			return err
 		}
 		now := time.Now()
 		lastDate = now.Format("2006-01-02")
@@ -60,13 +83,14 @@ func main() {
 		if err != nil {
 			// если не удалось сериализовать конфиг, то что-то не так
 			Log.Error("error: ", slog.String("err", err.Error()))
-			return
+			return err
 		}
 		fmt.Println(string(*cfgBytes))
 	}
 	Log.Debug("debug message is enabled")
 
-	//fmt.Println(lastDate, firstDate, bin)
+	// бюджет всего прогона: должен быть меньше интервала cron, иначе запуски
+	// начнут накладываться и копить сессии в БД
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
 	defer cancel()
 
@@ -77,7 +101,7 @@ func main() {
 			cfg.NATS_STARTUP_TIMEOUT, Log)
 		if err != nil {
 			Log.Error("broker is required, aborting", slog.String("err", err.Error()))
-			os.Exit(1)
+			return err
 		}
 		nc.Close()
 	}
@@ -86,67 +110,57 @@ func main() {
 	storage, err := storage.NewStorage(ctx, dsn, Log)
 	if err != nil {
 		Log.Error("not init postgres storage")
-		return
+		return err
 	}
+	// единственное место закрытия пула - отработает на любом пути, включая панику
+	defer storage.Close()
 
+	// --- транзакция 1: загрузка операций из КОФД ---
 	pgxTransaction, err := storage.Db.Begin(ctx)
 	if err != nil {
 		Log.Error("Not created transaction:", slog.String("err", err.Error()))
-		storage.Close()
-		return
+		return err
 	}
 	storage.Tx = &pgxTransaction
+	defer rollbackIfOpen(pgxTransaction, Log)
 
 	token, err := kofd_updater_services.GetToken(ctx, storage, Log, bin, cfg)
 	if err != nil {
 		Log.Error("error: ", slog.String("err", err.Error()))
-		err = pgxTransaction.Rollback(ctx)
-		if err != nil {
-			Log.Error("Error rollback all db changes:", slog.String("err", err.Error()))
-		}
-		storage.Close()
-		return
+		return err
 	}
 
 	// загружаем транзакции за заданный период из КОФД в БД
 	_, err = kofd_updater_services.GetOperationsFromApi(ctx, storage, cfg, Log, bin, token, firstDate, lastDate)
 	if err != nil {
 		Log.Error("error: ", slog.String("err", err.Error()))
-		err = pgxTransaction.Rollback(ctx)
-		if err != nil {
-			Log.Error("Error rollback all db changes:", slog.String("err", err.Error()))
-		}
-		storage.Close()
-		return
+		return err
 	}
 
 	// закрываем транзакцию после записи операций
-	err = pgxTransaction.Commit(ctx)
-	if err != nil {
+	if err := pgxTransaction.Commit(ctx); err != nil {
+		// продолжать нельзя: операции не сохранены, а дальше идёт сдвиг курсоров
+		// и рассылка уведомлений о том, чего в базе нет
 		Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
-	} else {
-		Log.Info("DB changes committed")
+		return err
 	}
+	storage.Tx = nil
+	Log.Info("DB changes committed")
 
-	// открываем новую транзакцию
-	pgxTransaction, err = storage.Db.Begin(ctx)
+	// --- транзакция 2: определение новых операций и рассылка ---
+	pgxTransaction2, err := storage.Db.Begin(ctx)
 	if err != nil {
 		Log.Error("Not created transaction:", slog.String("err", err.Error()))
-		storage.Close()
-		return
+		return err
 	}
-	storage.Tx = &pgxTransaction
+	storage.Tx = &pgxTransaction2
+	defer rollbackIfOpen(pgxTransaction2, Log)
 
 	// определяем новые операции для каждого пользователя
 	messages, err := kofd_updater_services.DetectNewOperations(ctx, storage, Log)
 	if err != nil {
 		Log.Error("error: ", slog.String("err", err.Error()))
-		err = pgxTransaction.Rollback(ctx)
-		if err != nil {
-			Log.Error("Error rollback all db changes:", slog.String("err", err.Error()))
-		}
-		storage.Close()
-		return
+		return err
 	}
 
 	// отправляем операции в брокер
@@ -155,35 +169,28 @@ func main() {
 		if len(messages) == 0 {
 			Log.Info("no new updates for users")
 		} else {
-			err = kofd_updater_services.SendToNats(ctx, cfg, Log, messages)
-			if err != nil {
-				// откатываем сдвиг курсоров: иначе эти операции больше никогда
-				// не попадут в рассылку, а пользователи их не увидят
+			if err := kofd_updater_services.SendToNats(ctx, cfg, Log, messages); err != nil {
+				// откатываем сдвиг курсоров (это сделает defer): иначе эти операции
+				// больше никогда не попадут в рассылку, а пользователи их не увидят
 				Log.Error("Error broker send, rolling back cursors:", slog.String("err", err.Error()))
-				if errRollback := pgxTransaction.Rollback(ctx); errRollback != nil {
-					Log.Error("Error rollback all db changes:", slog.String("err", errRollback.Error()))
-				}
-				storage.Close()
-				os.Exit(1)
+				return err
 			}
 		}
 	}
 
-	// удаляем старые токены
-	err = storage.DeleteOldTokens(ctx)
-	if err != nil {
+	// удаляем старые токены - не критично для прогона
+	if err := storage.DeleteOldTokens(ctx); err != nil {
 		Log.Warn("error: ", slog.String("err", err.Error()))
 	}
 
 	// опять закрываем транзакцию
-	err = pgxTransaction.Commit(ctx)
-	if err != nil {
+	if err := pgxTransaction2.Commit(ctx); err != nil {
 		Log.Error("Error commit all db changes:", slog.String("err", err.Error()))
-	} else {
-		Log.Info("DB changes committed")
+		return err
 	}
+	storage.Tx = nil
+	Log.Info("DB changes committed")
 
-	storage.Close()
 	Log.Info("=== success end kofd_updater ===")
-
+	return nil
 }
