@@ -7,13 +7,16 @@ lint:
 bot:
 	go run cmd/bot/main.go -configEnv ./.env
 
-# заливы истории за большой период не влезают в обычный бюджет прогона,
-# поэтому POSTGRES_TIMEOUT расширяем - переменная окружения перекрывает .env
+# Профиль заливки истории. Дефолты в .env рассчитаны на прогон по cron и для
+# больших периодов малы: HTTP_LONG_TIMEOUT тратится на каждую активную кассу,
+# поэтому потолок прогона нужен с запасом. Переменные окружения перекрывают .env
+BACKFILL_ENV = POSTGRES_TIMEOUT=600s HTTP_LONG_TIMEOUT=120s HTTP_TIMEOUT=15s NATS_STARTUP_TIMEOUT=30s
+
 updater:
-	POSTGRES_TIMEOUT=600s go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2025-07-01" -lastDate "2025-07-26" -bin "800727301256"
+	$(BACKFILL_ENV) go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2025-07-01" -lastDate "2025-07-26" -bin "800727301256"
 
 updater2023-01:
-	POSTGRES_TIMEOUT=600s go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2023-01-01" -lastDate "2023-01-31" -bin "800727301256"
+	$(BACKFILL_ENV) go run cmd/kofd_updater/main.go -configEnv "./.env" -firstDate "2023-01-01" -lastDate "2023-01-31" -bin "800727301256"
 
 
 updater32:

@@ -28,8 +28,12 @@ type Config struct {
 
 	// таймауты клиентов к внешним API. Значения по умолчанию заданы здесь,
 	// чтобы приложение работало и без этих переменных в .env
-	HTTP_TIMEOUT      time.Duration `env:"HTTP_TIMEOUT" envDefault:"10s"`       // обычные запросы
-	HTTP_LONG_TIMEOUT time.Duration `env:"HTTP_LONG_TIMEOUT" envDefault:"120s"` // выгрузка списков за большой период
+	// дефолты рассчитаны на прогон по cron. Заливка истории запускается с
+	// расширенными значениями через переменные окружения (см. makefile)
+	HTTP_TIMEOUT time.Duration `env:"HTTP_TIMEOUT" envDefault:"10s"` // обычные запросы
+	// выгрузка операций КОФД. Вызывается по разу на каждую активную кассу,
+	// поэтому значение умножается на их число и должно влезать в POSTGRES_TIMEOUT
+	HTTP_LONG_TIMEOUT time.Duration `env:"HTTP_LONG_TIMEOUT" envDefault:"15s"`
 
 	KOFD_PASSAUTH_URL   string `env:"KOFD_PASSAUTH_URL"`
 	KOFD_OPERATIONS_URL string `env:"KOFD_OPERATIONS_URL"`
@@ -42,8 +46,10 @@ type Config struct {
 	NATS_MONITORING_PORT string `env:"NATS_MONITORING_PORT"`
 	NATS_STREAM_NAME     string `env:"NATS_STREAM_NAME"`
 	NATS_ENABLE          bool   `env:"NATS_ENABLE" envDefault:"true"`
-	// сколько ждать брокера при старте, прежде чем упасть
-	NATS_STARTUP_TIMEOUT time.Duration `env:"NATS_STARTUP_TIMEOUT" envDefault:"30s"`
+	// сколько ждать брокера при старте, прежде чем упасть. Тратится внутри
+	// POSTGRES_TIMEOUT, поэтому для cron держим коротким - при интервале в 2
+	// минуты дешевле упасть и повторить, чем занимать бюджет ожиданием
+	NATS_STARTUP_TIMEOUT time.Duration `env:"NATS_STARTUP_TIMEOUT" envDefault:"10s"`
 
 	CIPO_PRODUCTS_URL string `env:"CIPO_PRODUCTS_URL"` // в бэкенд CIPO - карточка товара
 	CIPO_IMAGES_URL   string `env:"CIPO_IMAGES_URL"`   // в бэкенд CIPO - статика
