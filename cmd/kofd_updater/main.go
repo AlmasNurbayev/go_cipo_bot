@@ -89,6 +89,19 @@ func run() error {
 	}
 	Log.Debug("debug message is enabled")
 
+	// выделено в отдельную функцию, чтобы её defer-ы (закрытие пула, откат
+	// транзакций) успели отработать до финального сообщения об успехе
+	if err := update(cfg, Log, bin, firstDate, lastDate); err != nil {
+		return err
+	}
+
+	Log.Info("=== success end kofd_updater ===")
+	return nil
+}
+
+// update выполняет сам прогон: проверяет брокера, забирает операции из КОФД
+// и рассылает уведомления о новых
+func update(cfg *config.Config, Log *slog.Logger, bin, firstDate, lastDate string) error {
 	// бюджет всего прогона: должен быть меньше интервала cron, иначе запуски
 	// начнут накладываться и копить сессии в БД
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
@@ -191,6 +204,5 @@ func run() error {
 	storage.Tx = nil
 	Log.Info("DB changes committed")
 
-	Log.Info("=== success end kofd_updater ===")
 	return nil
 }

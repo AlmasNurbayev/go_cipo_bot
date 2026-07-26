@@ -17,6 +17,14 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 	op := "storage.InsertTransactions"
 	log := s.log.With(slog.String("op", op))
 
+	// вставка операций допустима только внутри транзакции - при ошибке загрузки
+	// она откатывается целиком. Без транзакции возвращаем ошибку, а не паникуем
+	// на разыменовании nil
+	if s.Tx == nil {
+		err := errors.New(op + ": транзакция не открыта, вставка операций запрещена")
+		log.Error("error: ", slog.String("err", err.Error()))
+		return 0, err
+	}
 	db := *s.Tx
 
 	count := 0
