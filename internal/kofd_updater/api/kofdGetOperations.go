@@ -59,7 +59,9 @@ func KofdGetOperations(cfg *config.Config,
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return response, err
 	}
-	client := &http.Client{}
+	// длинный таймаут: список операций запрашивается за произвольный период,
+	// при заливе истории это месяцы данных
+	client := &http.Client{Timeout: cfg.HTTP_LONG_TIMEOUT}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))

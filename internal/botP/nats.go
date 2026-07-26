@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/natsutil"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	"github.com/go-telegram/bot"
@@ -18,10 +19,112 @@ import (
 type storageI interface {
 	ListKassa(context.Context) ([]modelsI.KassaEntity, error)
 	GetKassaById(context.Context, int64) (modelsI.KassaEntity, error)
+	ListUsers(context.Context) ([]modelsI.UserEntity, error)
 }
 
+// границы паузы между попытками переподключения к брокеру в рабочем режиме
+const (
+	natsRetryMinWait = 2 * time.Second
+	natsRetryMaxWait = 60 * time.Second
+)
+
+// RunNatsConsumer состоит из двух фаз.
+//
+// Старт: брокер обязателен - оповещение пользователей о новых чеках одна из
+// основных задач бота. Попытки подключения повторяются в пределах
+// NATS_STARTUP_TIMEOUT, после чего возвращается ошибка и приложение падает.
+//
+// Работа: потеря брокера бота не останавливает, консьюмер переподключается
+// бесконечно. Об аварии один раз оповещаются админы; флаг сбрасывается после
+// восстановления, чтобы о следующем обрыве тоже сообщили.
 func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger, b *bot.Bot, storage storageI) error {
-	op := "botP.NewNatsConsumer"
+	op := "botP.RunNatsConsumer"
+	log := log1.With("op", op)
+
+	// фаза старта - без брокера работать не начинаем
+	nc, err := natsutil.ConnectWithRetry(ctx, cfg.NATS_NAME+":"+cfg.NATS_PORT,
+		cfg.NATS_STARTUP_TIMEOUT, log1,
+		nats.MaxReconnects(-1),
+		nats.ReconnectWait(2*time.Second),
+	)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil // остановка приложения во время ожидания брокера
+		}
+		return err
+	}
+	nc.Close() // проверочное соединение больше не нужно, дальше подключается консьюмер
+
+	// фаза работы
+	wait := natsRetryMinWait
+	adminsNotified := false
+	for {
+		subscribed, err := runNatsConsumerOnce(ctx, cfg, log1, b, storage)
+		if ctx.Err() != nil {
+			// штатная остановка вместе с приложением
+			return nil
+		}
+		if subscribed {
+			// связь была - сбрасываем задержку и право снова оповестить админов
+			wait = natsRetryMinWait
+			adminsNotified = false
+		}
+		if err == nil {
+			continue
+		}
+		log.Error("nats consumer failed, retrying",
+			slog.String("err", err.Error()), slog.Duration("wait", wait))
+
+		if !adminsNotified {
+			notifyAdmins(ctx, log, b, storage, err)
+			adminsNotified = true
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(wait):
+		}
+		// увеличиваем паузу до потолка, чтобы не долбить недоступный брокер
+		wait = min(wait*2, natsRetryMaxWait)
+	}
+}
+
+// notifyAdmins один раз за аварию сообщает всем админам, что брокер потерян и
+// уведомления о новых чеках временно не приходят
+func notifyAdmins(ctx context.Context, log *slog.Logger, b *bot.Bot, storage storageI, cause error) {
+	users, err := storage.ListUsers(ctx)
+	if err != nil {
+		log.Error("cannot list users to notify about broker", slog.String("err", err.Error()))
+		return
+	}
+	text := "⚠️ Брокер сообщений недоступен, уведомления о новых чеках временно не приходят.\n" +
+		"Причина: " + cause.Error()
+
+	sent := 0
+	for _, user := range users {
+		if user.Role != "admin" {
+			continue
+		}
+		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: user.Telegram_id,
+			Text:   text,
+		})
+		if err != nil {
+			log.Error("error notifying admin about broker",
+				slog.String("telegram_id", user.Telegram_id), slog.String("err", err.Error()))
+			continue
+		}
+		sent++
+	}
+	log.Warn("admins notified about broker outage", slog.Int("count", sent))
+}
+
+// runNatsConsumerOnce - одна попытка: подключение, подписка и чтение сообщений
+// до первой ошибки или отмены контекста. Первым значением возвращает признак
+// того, что подписка была успешно создана
+func runNatsConsumerOnce(ctx context.Context, cfg *config.Config, log1 *slog.Logger, b *bot.Bot, storage storageI) (bool, error) {
+	op := "botP.runNatsConsumerOnce"
 	log := log1.With("op", op)
 
 	nc, err := nats.Connect(
@@ -30,13 +133,13 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 		nats.ReconnectWait(2*time.Second), // пауза между попытками
 	)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer nc.Close()
 
 	js, err := nc.JetStream()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	stream, err := js.StreamInfo(cfg.NATS_STREAM_NAME)
@@ -63,7 +166,7 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 		nats.ManualAck(),
 	)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer func() {
 		err := sub.Unsubscribe()
@@ -78,14 +181,14 @@ func RunNatsConsumer(ctx context.Context, cfg *config.Config, log1 *slog.Logger,
 		select {
 		case <-ctx.Done():
 			log.Warn("Stopping consumer...")
-			return nil
+			return true, nil
 		default:
 			msgs, err := sub.Fetch(10, nats.MaxWait(500*time.Millisecond))
 			if err != nil {
 				if err == nats.ErrTimeout {
 					continue // просто нет сообщений
 				}
-				return err // обрыв или другая ошибка — выйдем, чтобы переподключиться
+				return true, err // обрыв или другая ошибка — выйдем, чтобы переподключиться
 			}
 			for _, msg := range msgs {
 				var data modelsI.MessagesType

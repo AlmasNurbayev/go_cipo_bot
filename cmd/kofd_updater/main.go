@@ -5,12 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/kofd_updater/kofd_updater_services"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/logger"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/natsutil"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	storage "github.com/AlmasNurbayev/go_cipo_bot/internal/storage/postgres"
 )
@@ -68,6 +70,18 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.POSTGRES_TIMEOUT)
 	defer cancel()
 
+	// брокер проверяем до любой работы: если публиковать новые операции будет
+	// некуда, то нельзя сдвигать курсоры пользователей - уведомления пропадут
+	if cfg.NATS_ENABLE {
+		nc, err := natsutil.ConnectWithRetry(ctx, "nats://"+cfg.NATS_NAME+":"+cfg.NATS_PORT,
+			cfg.NATS_STARTUP_TIMEOUT, Log)
+		if err != nil {
+			Log.Error("broker is required, aborting", slog.String("err", err.Error()))
+			os.Exit(1)
+		}
+		nc.Close()
+	}
+
 	dsn := "postgres://" + cfg.POSTGRES_USER + ":" + cfg.POSTGRES_PASSWORD + "@" + cfg.POSTGRES_HOST + ":" + cfg.POSTGRES_INT_PORT + "/" + cfg.POSTGRES_DB + "?sslmode=disable"
 	storage, err := storage.NewStorage(ctx, dsn, Log)
 	if err != nil {
@@ -75,7 +89,7 @@ func main() {
 		return
 	}
 
-	pgxTransaction, err := storage.Db.Begin(storage.Ctx)
+	pgxTransaction, err := storage.Db.Begin(ctx)
 	if err != nil {
 		Log.Error("Not created transaction:", slog.String("err", err.Error()))
 		storage.Close()
@@ -115,7 +129,7 @@ func main() {
 	}
 
 	// открываем новую транзакцию
-	pgxTransaction, err = storage.Db.Begin(storage.Ctx)
+	pgxTransaction, err = storage.Db.Begin(ctx)
 	if err != nil {
 		Log.Error("Not created transaction:", slog.String("err", err.Error()))
 		storage.Close()
@@ -141,9 +155,16 @@ func main() {
 		if len(messages) == 0 {
 			Log.Info("no new updates for users")
 		} else {
-			err = kofd_updater_services.SendToNats(cfg, Log, messages)
+			err = kofd_updater_services.SendToNats(ctx, cfg, Log, messages)
 			if err != nil {
-				Log.Error("Error broker send:", slog.String("err", err.Error()))
+				// откатываем сдвиг курсоров: иначе эти операции больше никогда
+				// не попадут в рассылку, а пользователи их не увидят
+				Log.Error("Error broker send, rolling back cursors:", slog.String("err", err.Error()))
+				if errRollback := pgxTransaction.Rollback(ctx); errRollback != nil {
+					Log.Error("Error rollback all db changes:", slog.String("err", errRollback.Error()))
+				}
+				storage.Close()
+				os.Exit(1)
 			}
 		}
 	}

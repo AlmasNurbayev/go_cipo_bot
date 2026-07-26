@@ -9,11 +9,12 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
-func GsheetsData(googleApiKey string, bookID string, sheet string, rangeName string, log1 *slog.Logger) ([]models.GSheetsEntityV1, error) {
+func GsheetsData(cfg *config.Config, bookID string, sheet string, rangeName string, log1 *slog.Logger) ([]models.GSheetsEntityV1, error) {
 	var result = []models.GSheetsEntityV1{}
 	var response = models.GSheetsResponseV1{}
 
@@ -26,7 +27,7 @@ func GsheetsData(googleApiKey string, bookID string, sheet string, rangeName str
 		return result, err
 	}
 	query := url.Values{}
-	query.Add("key", googleApiKey)
+	query.Add("key", cfg.GOOGLE_API_KEY)
 	query.Add("valueRenderOption", "FORMATTED_VALUE")
 	base.RawQuery = query.Encode()
 	//log.Debug("request", slog.String("url", base.String()))
@@ -36,7 +37,7 @@ func GsheetsData(googleApiKey string, bookID string, sheet string, rangeName str
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return result, err
 	}
-	client := &http.Client{}
+	client := &http.Client{Timeout: cfg.HTTP_TIMEOUT}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))

@@ -1,17 +1,19 @@
 package kofd_updater_services
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
+	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/natsutil"
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 	"github.com/nats-io/nats.go"
 )
 
-func SendToNats(cfg *config.Config, Log1 *slog.Logger,
+func SendToNats(ctx context.Context, cfg *config.Config, Log1 *slog.Logger,
 	messages []models.MessagesType) error {
 
 	op := "kofd_updater_services.SendToNats"
@@ -20,14 +22,12 @@ func SendToNats(cfg *config.Config, Log1 *slog.Logger,
 
 	connectionString := "nats://" + cfg.NATS_NAME + ":" + cfg.NATS_PORT
 	log.Info("Connecting to NATS", "connectionString", connectionString, "subject", subject)
-	nc, err := nats.Connect(connectionString,
-		nats.RetryOnFailedConnect(true),
-		nats.MaxReconnects(3),
-		nats.ReconnectWait(time.Second))
+	nc, err := natsutil.ConnectWithRetry(ctx, connectionString, cfg.NATS_STARTUP_TIMEOUT, Log1)
 	if err != nil {
 		log.Error("Failed to connect to NATS", "error", err)
 		return err
 	}
+	defer nc.Close()
 	// Создаём контекст JetStream
 	js, err := nc.JetStream()
 	if err != nil {
@@ -74,7 +74,5 @@ func SendToNats(cfg *config.Config, Log1 *slog.Logger,
 		}
 	}
 	log.Info("All messages published to NATS successfully", "count", len(messages))
-	//log.Info("Message published", "subject", subject)
-	defer nc.Close()
 	return nil
 }

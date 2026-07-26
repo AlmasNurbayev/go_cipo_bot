@@ -11,8 +11,7 @@ import (
 )
 
 type Storage struct {
-	Ctx context.Context // экспортная для создания транзакций снаружи
-	Db  *pgxpool.Pool   // экспортная для создания транзакций снаружи
+	Db  *pgxpool.Pool // экспортная для создания транзакций снаружи
 	log *slog.Logger
 	Tx  *pgx.Tx
 }
@@ -52,7 +51,7 @@ func NewStorage(ctx context.Context, DSN string, log1 *slog.Logger) (*Storage, e
 	// 	return nil, fmt.Errorf("%s: %w", op, err)
 	// }
 
-	return &Storage{Ctx: ctx, Db: db, log: log}, nil
+	return &Storage{Db: db, log: log}, nil
 }
 
 func (s *Storage) Close() {

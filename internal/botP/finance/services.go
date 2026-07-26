@@ -17,7 +17,7 @@ import (
 )
 
 func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage.Storage,
-	mode string, googleApiKey string,
+	mode string, cfg *config.Config,
 ) ([]byte, string, error) {
 
 	op := "finance.financeOPIUService"
@@ -58,7 +58,7 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 	sumData := []models.GSheetsEntityV1{}
 	for _, v := range books {
 		log.Info("book", slog.String("book", v.Book))
-		data, err := botP.GsheetsData(googleApiKey, v.Book, v.Sheet, v.Range, log1)
+		data, err := botP.GsheetsData(cfg, v.Book, v.Sheet, v.Range, log1)
 		sumData = append(sumData, data...) // объединяем данные из всех таблиц
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
@@ -330,7 +330,7 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 }
 
 func financeChartService(ctx context.Context, log1 *slog.Logger, storage *storage.Storage,
-	mode string, googleApiKey string,
+	mode string, cfg *config.Config,
 ) ([]byte, string, error) {
 
 	op := "finance.financeChartService"
@@ -372,7 +372,7 @@ func financeChartService(ctx context.Context, log1 *slog.Logger, storage *storag
 	sumData := []models.GSheetsEntityV1{}
 	for _, v := range books {
 		log.Info("book", slog.String("book", v.Book))
-		data, err := botP.GsheetsData(googleApiKey, v.Book, v.Sheet, v.Range, log1)
+		data, err := botP.GsheetsData(cfg, v.Book, v.Sheet, v.Range, log1)
 		sumData = append(sumData, data...) // объединяем данные из всех таблиц
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))

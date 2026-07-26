@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/config"
 )
@@ -46,9 +45,7 @@ func KofdGetCheck(cfg *config.Config,
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return response, err
 	}
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	client := &http.Client{Timeout: cfg.HTTP_TIMEOUT}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))

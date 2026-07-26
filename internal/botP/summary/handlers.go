@@ -135,12 +135,18 @@ func summaryCallbackHandler(storage storageI,
 	log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "summary.summaryCallbackHandler"
-		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
-			slog.String("user name", update.CallbackQuery.From.Username))
 		if update.CallbackQuery == nil {
 			return
 		}
+		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
+			slog.String("user name", update.CallbackQuery.From.Username))
 		cb := update.CallbackQuery
+		// сообщение с кнопкой могло быть удалено или устареть - тогда чат недоступен
+		chatID, ok := utils.UpdateChatID(update)
+		if !ok {
+			log.Warn("callback без доступного чата, пропускаем", slog.String("data", cb.Data))
+			return
+		}
 		log.Info("called callback", slog.String("data", cb.Data))
 		_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
@@ -155,7 +161,7 @@ func summaryCallbackHandler(storage storageI,
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: cb.Message.Message.Chat.ID,
+					ChatID: chatID,
 					Text:   "Ошибка получения данных",
 				})
 				if err != nil {
@@ -163,7 +169,7 @@ func summaryCallbackHandler(storage storageI,
 				}
 			}
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:      cb.Message.Message.Chat.ID,
+				ChatID:      chatID,
 				Text:        response,
 				ParseMode:   models.ParseModeHTML,
 				ReplyMarkup: markups,
@@ -174,7 +180,7 @@ func summaryCallbackHandler(storage storageI,
 		}
 
 		if strings.Contains(cb.Data, "summary_analytics_") {
-			err := utils.SendAction(ctx, cb.Message.Message.Chat.ID, "typing", b)
+			err := utils.SendAction(ctx, chatID, "typing", b)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 			}
@@ -182,7 +188,7 @@ func summaryCallbackHandler(storage storageI,
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: cb.Message.Message.Chat.ID,
+					ChatID: chatID,
 					Text:   "Ошибка получения данных",
 				})
 				if err != nil {
@@ -190,7 +196,7 @@ func summaryCallbackHandler(storage storageI,
 				}
 			}
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:      cb.Message.Message.Chat.ID,
+				ChatID:      chatID,
 				Text:        response,
 				ParseMode:   models.ParseModeHTML,
 				ReplyMarkup: markups,
@@ -208,12 +214,18 @@ func summaryGetCheckHandler(storage storageI,
 	log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "summary.summaryGetCheckHandler"
-		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
-			slog.String("user name", update.CallbackQuery.From.Username), slog.String("test", "test"))
 		if update.CallbackQuery == nil {
 			return
 		}
+		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
+			slog.String("user name", update.CallbackQuery.From.Username))
 		cb := update.CallbackQuery
+		// сообщение с кнопкой могло быть удалено или устареть - тогда чат недоступен
+		chatID, ok := utils.UpdateChatID(update)
+		if !ok {
+			log.Warn("callback без доступного чата, пропускаем", slog.String("data", cb.Data))
+			return
+		}
 		_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
 			ShowAlert:       false,
@@ -221,7 +233,7 @@ func summaryGetCheckHandler(storage storageI,
 		if err != nil {
 			log.Error("error answering callback query", slog.String("err", err.Error()))
 		}
-		err = utils.SendAction(ctx, cb.Message.Message.Chat.ID, "upload_photo", b)
+		err = utils.SendAction(ctx, chatID, "upload_photo", b)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 		}
@@ -229,7 +241,7 @@ func summaryGetCheckHandler(storage storageI,
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: cb.Message.Message.Chat.ID,
+				ChatID: chatID,
 				Text:   "Ошибка получения данных",
 			})
 			if err != nil {
@@ -240,7 +252,7 @@ func summaryGetCheckHandler(storage storageI,
 		// Если фото есть, то отправляем МедиаГруппой, иначе просто текстом
 		if len(inputMedia) == 0 {
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:    cb.Message.Message.Chat.ID,
+				ChatID:    chatID,
 				Text:      stringResponce,
 				ParseMode: models.ParseModeHTML,
 				ReplyMarkup: &models.InlineKeyboardMarkup{
@@ -260,7 +272,7 @@ func summaryGetCheckHandler(storage storageI,
 		} else {
 			// если есть фото, отправляем медиа группой
 			_, err = b.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
-				ChatID: cb.Message.Message.Chat.ID,
+				ChatID: chatID,
 				Media:  inputMedia,
 			})
 			// Запоминаем, что кнопку "Полный текст чека" уже отправили
@@ -269,7 +281,7 @@ func summaryGetCheckHandler(storage storageI,
 				// если не получилось отправить медиа группой, то отправляем текстом
 				log.Error("error sending media group", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID:    cb.Message.Message.Chat.ID,
+					ChatID:    chatID,
 					Text:      stringResponce,
 					ParseMode: models.ParseModeHTML,
 					ReplyMarkup: &models.InlineKeyboardMarkup{
@@ -292,7 +304,7 @@ func summaryGetCheckHandler(storage storageI,
 			// если ранее такая кнопка уже была отправлена, то не отправляем повторно
 			if !FullTextButtonIsSending {
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: cb.Message.Message.Chat.ID,
+					ChatID: chatID,
 					Text:   "Полный текст чека",
 					ReplyMarkup: &models.InlineKeyboardMarkup{
 						InlineKeyboard: [][]models.InlineKeyboardButton{
@@ -317,12 +329,18 @@ func summaryFullTextCheckHandler(storage storageI,
 	log1 *slog.Logger) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "summary.summaryFullCheckHandler"
-		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
-			slog.String("user name", update.CallbackQuery.From.Username), slog.String("test", "test"))
 		if update.CallbackQuery == nil {
 			return
 		}
+		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.CallbackQuery.From.ID)),
+			slog.String("user name", update.CallbackQuery.From.Username))
 		cb := update.CallbackQuery
+		// сообщение с кнопкой могло быть удалено или устареть - тогда чат недоступен
+		chatID, ok := utils.UpdateChatID(update)
+		if !ok {
+			log.Warn("callback без доступного чата, пропускаем", slog.String("data", cb.Data))
+			return
+		}
 		_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
 			ShowAlert:       false,
@@ -335,7 +353,7 @@ func summaryFullTextCheckHandler(storage storageI,
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: cb.Message.Message.Chat.ID,
+				ChatID: chatID,
 				Text:   "Ошибка получения данных",
 			})
 			if err != nil {
@@ -343,7 +361,7 @@ func summaryFullTextCheckHandler(storage storageI,
 			}
 		}
 		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID:    cb.Message.Message.Chat.ID,
+			ChatID:    chatID,
 			Text:      response,
 			ParseMode: models.ParseModeHTML,
 		})

@@ -51,7 +51,7 @@ func KofdGetToken(sendBody KofdAuthenticateRequest, cfg *config.Config,
 		return response, err
 	}
 	req, err := http.NewRequest("POST", base.String(), io.NopCloser(bytes.NewReader(jsonBody)))
-	client := &http.Client{}
+	client := &http.Client{Timeout: cfg.HTTP_TIMEOUT}
 
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))

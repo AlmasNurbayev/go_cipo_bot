@@ -60,10 +60,17 @@ func main() {
 		httpApp.Run()
 	}()
 
+	// ошибка отсюда означает, что брокер не поднялся за NATS_STARTUP_TIMEOUT:
+	// без него бот не может оповещать о новых чеках, поэтому завершаемся с ошибкой
+	fatalCh := make(chan error, 1)
 	if cfg.NATS_ENABLE {
 		go func() {
 			if err := botP.RunNatsConsumer(ctx, cfg, Log, botApp.Bot, botApp.Storage); err != nil {
-				Log.Error("error run nats consumer", slog.String("err", err.Error()))
+				Log.Error("nats consumer fatal", slog.String("err", err.Error()))
+				select {
+				case fatalCh <- err:
+				default:
+				}
 				cancel()
 			}
 		}()
@@ -77,6 +84,15 @@ func main() {
 
 	time.Sleep(cfg.BOT_TIMEOUT / 2) // timeout)
 	Log.Warn("bot, http server, nats stopped")
+
+	// останавливаемся штатно, но код возврата ненулевой - чтобы docker перезапустил
+	// контейнер, а проблема была видна, а не молча деградировала
+	select {
+	case <-fatalCh:
+		Log.Error("=== end bot with error ===")
+		os.Exit(1)
+	default:
+	}
 	Log.Info("=== end bot ===")
 }
 

@@ -245,6 +245,31 @@ func GetTypeOperationText(oper modelsI.TransactionEntity) string {
 	return "Неизвестно"
 }
 
+// UpdateChatID возвращает chat_id из апдейта - из обычного сообщения или из
+// callback-запроса. Второе значение false, если чат определить нельзя.
+//
+// У callback-запроса поле Message - union: когда сообщение с кнопкой удалено
+// или слишком старое, Telegram присылает InaccessibleMessage, и Message.Message
+// равен nil. Chat доступен в обеих ветках, поэтому ответить пользователю можно
+// в любом случае.
+func UpdateChatID(update *models.Update) (int64, bool) {
+	if update == nil {
+		return 0, false
+	}
+	if update.Message != nil {
+		return update.Message.Chat.ID, true
+	}
+	if cb := update.CallbackQuery; cb != nil {
+		if cb.Message.Message != nil {
+			return cb.Message.Message.Chat.ID, true
+		}
+		if cb.Message.InaccessibleMessage != nil {
+			return cb.Message.InaccessibleMessage.Chat.ID, true
+		}
+	}
+	return 0, false
+}
+
 func SendAction(ctx context.Context, chatID int64, action string, b *bot.Bot) error {
 	// Отправляем действие, чтобы не было "пустого" сообщения
 	var typeAction models.ChatAction
