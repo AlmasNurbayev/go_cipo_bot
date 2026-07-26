@@ -1,6 +1,7 @@
 package botP
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,7 +15,7 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
-func GsheetsData(cfg *config.Config, bookID string, sheet string, rangeName string, log1 *slog.Logger) ([]models.GSheetsEntityV1, error) {
+func GsheetsData(ctx context.Context, cfg *config.Config, bookID string, sheet string, rangeName string, log1 *slog.Logger) ([]models.GSheetsEntityV1, error) {
 	var result = []models.GSheetsEntityV1{}
 	var response = models.GSheetsResponseV1{}
 
@@ -32,7 +33,7 @@ func GsheetsData(cfg *config.Config, bookID string, sheet string, rangeName stri
 	base.RawQuery = query.Encode()
 	//log.Debug("request", slog.String("url", base.String()))
 
-	req, err := http.NewRequest("GET", base.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", base.String(), nil)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return result, err

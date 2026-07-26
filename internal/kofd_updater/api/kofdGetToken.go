@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -32,7 +33,7 @@ type KofdAuthenticateResponseData struct {
 	RefreshToken          string `json:"refreshToken"`
 }
 
-func KofdGetToken(sendBody KofdAuthenticateRequest, cfg *config.Config,
+func KofdGetToken(ctx context.Context, sendBody KofdAuthenticateRequest, cfg *config.Config,
 	log1 *slog.Logger) (KofdAuthenticateResponse, error) {
 
 	var response = KofdAuthenticateResponse{}
@@ -50,14 +51,13 @@ func KofdGetToken(sendBody KofdAuthenticateRequest, cfg *config.Config,
 		log.Error("Error marshaling request body:", slog.String("err", err.Error()))
 		return response, err
 	}
-	req, err := http.NewRequest("POST", base.String(), io.NopCloser(bytes.NewReader(jsonBody)))
-	client := &http.Client{Timeout: cfg.HTTP_TIMEOUT}
-
+	req, err := http.NewRequestWithContext(ctx, "POST", base.String(), io.NopCloser(bytes.NewReader(jsonBody)))
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return response, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: cfg.HTTP_TIMEOUT}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))

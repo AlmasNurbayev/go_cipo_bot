@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -20,7 +21,7 @@ type KofdCheckResponseData struct {
 	Error any                    `json:"error"`
 }
 
-func KofdGetCheck(cfg *config.Config,
+func KofdGetCheck(ctx context.Context, cfg *config.Config,
 	log1 *slog.Logger, knumber string, token string,
 	id string) (KofdCheckResponseData, error) {
 
@@ -39,12 +40,12 @@ func KofdGetCheck(cfg *config.Config,
 	query.Add("operationId", id)
 	base.RawQuery = query.Encode()
 
-	req, err := http.NewRequest("GET", base.String(), nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req, err := http.NewRequestWithContext(ctx, "GET", base.String(), nil)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return response, err
 	}
+	req.Header.Set("Authorization", "Bearer "+token)
 	client := &http.Client{Timeout: cfg.HTTP_TIMEOUT}
 	resp, err := client.Do(req)
 	if err != nil {

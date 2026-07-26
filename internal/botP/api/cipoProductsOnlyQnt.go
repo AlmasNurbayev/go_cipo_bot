@@ -1,6 +1,7 @@
 package botP
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -11,7 +12,7 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
-func CipoProductsOnlyQnt(cfg *config.Config,
+func CipoProductsOnlyQnt(ctx context.Context, cfg *config.Config,
 	log1 *slog.Logger, token string) (models.ProductsOnlyQntResponse, error) {
 
 	var response = models.ProductsOnlyQntResponse{}
@@ -28,12 +29,12 @@ func CipoProductsOnlyQnt(cfg *config.Config,
 	// query.Add("name_1c", name_1c)
 	// base.RawQuery = query.Encode()
 
-	req, err := http.NewRequest("GET", base.String(), nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req, err := http.NewRequestWithContext(ctx, "GET", base.String(), nil)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return response, err
 	}
+	req.Header.Set("Authorization", "Bearer "+token)
 	client := &http.Client{Timeout: cfg.HTTP_TIMEOUT}
 	resp, err := client.Do(req)
 	if err != nil {

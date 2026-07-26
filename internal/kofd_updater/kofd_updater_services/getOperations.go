@@ -44,7 +44,7 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 		if !kassa.Is_active {
 			continue
 		}
-		list, err := api.KofdGetOperations(cfg, log, kassa.Knumber.String, token, firstDate, lastDate)
+		list, err := api.KofdGetOperations(ctx, cfg, log, kassa.Knumber.String, token, firstDate, lastDate)
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
 			return 0, err
@@ -107,7 +107,7 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 		for index := range listEntity {
 			g.Go(func() error {
 
-				cheque, err := api.KofdGetCheck(cfg, log, kassa.Knumber.String, token, listEntity[index].Ofd_id)
+				cheque, err := api.KofdGetCheck(ctx, cfg, log, kassa.Knumber.String, token, listEntity[index].Ofd_id)
 				if err != nil {
 					log.Error("error on get check: ", slog.String("err", err.Error()))
 				}
@@ -124,7 +124,7 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 				// перебираем товары из чека и запрашиваем дополнительную информацию от Cipo
 				for nameIndex, name := range names {
 					var productData api.ProductByIdResponse
-					productData, productErr := api.CipoGetProduct(cfg, log, name.Name, token)
+					productData, productErr := api.CipoGetProduct(ctx, cfg, log, name.Name, token)
 					if productErr != nil {
 						log.Error("error on get product from Cipo backend: ", slog.String("err", productErr.Error()),
 							slog.String("name", name.Name))

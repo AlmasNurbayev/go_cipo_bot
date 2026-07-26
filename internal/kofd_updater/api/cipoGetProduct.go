@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -82,7 +83,7 @@ type qntPriceRegistryGroup struct {
 	Store_id     []int64 `json:"store_id"`
 }
 
-func CipoGetProduct(cfg *config.Config,
+func CipoGetProduct(ctx context.Context, cfg *config.Config,
 	log1 *slog.Logger, name_1c string, token string) (ProductByIdResponse, error) {
 
 	var response = ProductByIdResponse{}
@@ -99,12 +100,12 @@ func CipoGetProduct(cfg *config.Config,
 	query.Add("name_1c", name_1c)
 	base.RawQuery = query.Encode()
 
-	req, err := http.NewRequest("GET", base.String(), nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req, err := http.NewRequestWithContext(ctx, "GET", base.String(), nil)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return response, err
 	}
+	req.Header.Set("Authorization", "Bearer "+token)
 	client := &http.Client{Timeout: cfg.HTTP_TIMEOUT}
 	resp, err := client.Do(req)
 	if err != nil {

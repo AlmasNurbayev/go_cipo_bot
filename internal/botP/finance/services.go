@@ -58,7 +58,7 @@ func financeOPIUService(ctx context.Context, log1 *slog.Logger, storage *storage
 	sumData := []models.GSheetsEntityV1{}
 	for _, v := range books {
 		log.Info("book", slog.String("book", v.Book))
-		data, err := botP.GsheetsData(cfg, v.Book, v.Sheet, v.Range, log1)
+		data, err := botP.GsheetsData(ctx, cfg, v.Book, v.Sheet, v.Range, log1)
 		sumData = append(sumData, data...) // объединяем данные из всех таблиц
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))
@@ -372,7 +372,7 @@ func financeChartService(ctx context.Context, log1 *slog.Logger, storage *storag
 	sumData := []models.GSheetsEntityV1{}
 	for _, v := range books {
 		log.Info("book", slog.String("book", v.Book))
-		data, err := botP.GsheetsData(cfg, v.Book, v.Sheet, v.Range, log1)
+		data, err := botP.GsheetsData(ctx, cfg, v.Book, v.Sheet, v.Range, log1)
 		sumData = append(sumData, data...) // объединяем данные из всех таблиц
 		if err != nil {
 			log.Error("error: ", slog.String("err", err.Error()))

@@ -15,7 +15,7 @@ func qntNowService(ctx context.Context, log1 *slog.Logger, cfg *config.Config) (
 	op := "summary.getAnalytics"
 	log := log1.With(slog.String("op", op))
 
-	qntData, err := botP.CipoProductsOnlyQnt(cfg, log, "")
+	qntData, err := botP.CipoProductsOnlyQnt(ctx, cfg, log, "")
 	if err != nil {
 		log.Error("error on get qntData from Cipo backend: ", slog.String("err", err.Error()))
 		return "", err

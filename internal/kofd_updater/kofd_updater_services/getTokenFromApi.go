@@ -2,6 +2,7 @@ package kofd_updater_services
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"slices"
 	"time"
@@ -37,8 +38,10 @@ func GetTokenFormApi(ctx context.Context, storage storageToken, log1 *slog.Logge
 		return org.Bin == bin
 	})
 	if foundOrgIndex == -1 {
+		// err здесь nil - ListOrganizations отработал успешно, поэтому ошибку
+		// нужно создать, иначе прогон продолжится с пустым токеном и отчитается об успехе
 		log.Error("Organization not found", slog.String("bin", bin))
-		return "", err
+		return "", fmt.Errorf("%s: organization not found by bin %s", op, bin)
 	}
 
 	password, err := utils.DecryptToken(cfg.SECRET_BYTE, organizationsList[foundOrgIndex].Hash.String)
@@ -55,7 +58,7 @@ func GetTokenFormApi(ctx context.Context, storage storageToken, log1 *slog.Logge
 		OrganizationXin: organizationsList[foundOrgIndex].Bin,
 	}
 
-	data, err := api.KofdGetToken(TokenRequest, cfg, log)
+	data, err := api.KofdGetToken(ctx, TokenRequest, cfg, log)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
 		return "", err

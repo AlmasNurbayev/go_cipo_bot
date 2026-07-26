@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -33,7 +34,7 @@ type KofdOperationsResponseData struct {
 	Type_operation      int        `json:"type"`
 }
 
-func KofdGetOperations(cfg *config.Config,
+func KofdGetOperations(ctx context.Context, cfg *config.Config,
 	log1 *slog.Logger, knumber string, token string,
 	firstDate string, lastDate string) (KofdOperationsResponse, error) {
 
@@ -53,12 +54,12 @@ func KofdGetOperations(cfg *config.Config,
 	query.Add("fromDate", firstDate)
 	base.RawQuery = query.Encode()
 
-	req, err := http.NewRequest("GET", base.String(), nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req, err := http.NewRequestWithContext(ctx, "GET", base.String(), nil)
 	if err != nil {
 		log.Error("Api error:", slog.String("err", err.Error()))
 		return response, err
 	}
+	req.Header.Set("Authorization", "Bearer "+token)
 	// длинный таймаут: список операций запрашивается за произвольный период,
 	// при заливе истории это месяцы данных
 	client := &http.Client{Timeout: cfg.HTTP_LONG_TIMEOUT}
