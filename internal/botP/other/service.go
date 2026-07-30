@@ -3,10 +3,16 @@ package other
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
+	"time"
+
+	modelsI "github.com/AlmasNurbayev/go_cipo_bot/internal/models"
+	"github.com/go-telegram/bot/models"
 )
 
 type LogEntry struct {
@@ -148,4 +154,53 @@ func getLastLinesOffset(file *os.File, limit int) (int64, error) {
 		}
 	}
 	return 0, nil // Если строк меньше лимита, читаем с начала
+}
+
+// buildUsersInlineKb собирает клавиатуру выбора получателя тестового сообщения,
+// по 2 кнопки в ряд
+func buildUsersInlineKb(users []modelsI.UserEntity) *models.InlineKeyboardMarkup {
+	var inlineKeyboard [][]models.InlineKeyboardButton
+	var keyboardButtons []models.InlineKeyboardButton
+
+	for _, user := range users {
+		keyboardButtons = append(keyboardButtons, models.InlineKeyboardButton{
+			Text:         user.Telegram_name + " (" + user.Role + ")",
+			CallbackData: "other_sendTest_" + strconv.FormatInt(user.Id, 10),
+		})
+		if len(keyboardButtons) == 2 {
+			inlineKeyboard = append(inlineKeyboard, keyboardButtons)
+			keyboardButtons = []models.InlineKeyboardButton{}
+		}
+	}
+	if len(keyboardButtons) > 0 {
+		inlineKeyboard = append(inlineKeyboard, keyboardButtons)
+	}
+
+	return &models.InlineKeyboardMarkup{
+		InlineKeyboard: inlineKeyboard,
+	}
+}
+
+// parseSendTestCallback достает id пользователя из callback-данных
+func parseSendTestCallback(queryString string) (int64, error) {
+	queryArr := strings.Split(queryString, "_")
+	if len(queryArr) < 3 {
+		return 0, errors.New("неверный формат запроса, должен быть в формате: other_sendTest_1234567890")
+	}
+	userId, err := strconv.ParseInt(queryArr[2], 10, 64)
+	if err != nil {
+		return 0, errors.New("неверный id пользователя в запросе: " + queryArr[2])
+	}
+	return userId, nil
+}
+
+// buildTestMessageText формирует текст тестового сообщения получателю
+func buildTestMessageText(fromUsername string, now time.Time) string {
+	if fromUsername == "" {
+		fromUsername = "(без username)"
+	} else {
+		fromUsername = "@" + fromUsername
+	}
+	return "🟡 <b>Тестовое сообщение</b>\nОт: " + fromUsername +
+		"\nВремя: " + now.Format("02.01.2006 15:04")
 }
