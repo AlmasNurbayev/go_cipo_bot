@@ -21,6 +21,8 @@ type TransactionEntity struct {
 	Sum_operation       null.Float     `json:"sum_operation" db:"sum_operation"`
 	Availablesum        null.Float     `json:"availablesum" db:"availablesum"`
 	Paymenttypes        *[]int         `json:"paymenttypes" db:"paymenttypes"`
+	SumCash             null.Float     `json:"sum_cash" db:"sum_cash"`
+	SumCard             null.Float     `json:"sum_card" db:"sum_card"`
 	Shift               null.Int       `json:"shift" db:"shift"`
 	Created_at          time.Time      `json:"created_at" db:"created_at"`
 	Organization_id     int64          `json:"organization_id" db:"organization_id"`

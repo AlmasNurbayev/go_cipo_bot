@@ -13,6 +13,30 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+// addPaymentSplit раскладывает сумму операции по видам оплаты в переданные аккумуляторы.
+// Приоритет - новые поля sum_cash/sum_card: они заполняются одинаково что при одном
+// виде оплаты, что при смешанной, поэтому не нужно разбирать длину paymenttypes.
+// Фолбэк на paymenttypes нужен только для старых операций, вставленных до появления
+// sum_cash/sum_card (там оба поля NULL).
+func addPaymentSplit(transaction modelsI.TransactionEntity, cash, card, other, mixed *float64) {
+	switch {
+	case transaction.SumCash.Valid && transaction.SumCard.Valid:
+		*cash += transaction.SumCash.Float64
+		*card += transaction.SumCard.Float64
+	case transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) == 1:
+		switch (*transaction.Paymenttypes)[0] {
+		case 0:
+			*cash += transaction.Sum_operation.Float64
+		case 1:
+			*card += transaction.Sum_operation.Float64
+		default:
+			*other += transaction.Sum_operation.Float64
+		}
+	default:
+		*mixed += transaction.Sum_operation.Float64
+	}
+}
+
 func ConvertTransToTotal(transactions []modelsI.TransactionEntity,
 	ListKassas []modelsI.KassaEntity) modelsI.TypeTransactionsTotal {
 
@@ -65,57 +89,19 @@ func ConvertTransToTotal(transactions []modelsI.TransactionEntity,
 			}
 			if transaction.Type_operation == 1 { // продажа или возврат
 				if transaction.Subtype.Valid && transaction.Subtype.Int64 == 2 { // продажа
-					if transaction.Sum_operation.Valid {
-						if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) == 1 {
-							count++
-							kassaCount++
-							switch (*transaction.Paymenttypes)[0] {
-							case 0:
-								SumSalesCash += transaction.Sum_operation.Float64
-								kassaSumSalesCash += transaction.Sum_operation.Float64
-							case 1:
-								SumSalesCard += transaction.Sum_operation.Float64
-								kassaSumSalesCard += transaction.Sum_operation.Float64
-							default:
-								SumSalesOther += transaction.Sum_operation.Float64
-								kassaSumSalesOther += transaction.Sum_operation.Float64
-							}
-						}
-						// если несколько типов платежей, то это смешанно
-						if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) > 1 {
-							count++
-							kassaCount++
-							SumSalesMixed += transaction.Sum_operation.Float64
-							kassaSumSalesMixed += transaction.Sum_operation.Float64
-						}
+					if transaction.Sum_operation.Valid && transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) > 0 {
+						count++
+						kassaCount++
+						addPaymentSplit(transaction, &SumSalesCash, &SumSalesCard, &SumSalesOther, &SumSalesMixed)
+						addPaymentSplit(transaction, &kassaSumSalesCash, &kassaSumSalesCard, &kassaSumSalesOther, &kassaSumSalesMixed)
 					}
 				}
 				if transaction.Subtype.Valid && transaction.Subtype.Int64 == 3 { // возврат
-					if transaction.Sum_operation.Valid {
-						if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) == 1 {
-							//for _, paymentType := range *transaction.Paymenttypes {
-							count++
-							kassaCount++
-							switch (*transaction.Paymenttypes)[0] {
-							case 0:
-								SumReturnsCash += transaction.Sum_operation.Float64
-								kassaSumReturnsCash += transaction.Sum_operation.Float64
-							case 1:
-								SumReturnsCard += transaction.Sum_operation.Float64
-								kassaSumReturnsCard += transaction.Sum_operation.Float64
-							default:
-								SumReturnsOther += transaction.Sum_operation.Float64
-								kassaSumReturnsOther += transaction.Sum_operation.Float64
-							}
-							//}
-						}
-						// если несколько типов платежей, то это смешанно
-						if transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) > 1 {
-							count++
-							kassaCount++
-							SumReturnsMixed += transaction.Sum_operation.Float64
-							kassaSumReturnsMixed += transaction.Sum_operation.Float64
-						}
+					if transaction.Sum_operation.Valid && transaction.Paymenttypes != nil && len(*transaction.Paymenttypes) > 0 {
+						count++
+						kassaCount++
+						addPaymentSplit(transaction, &SumReturnsCash, &SumReturnsCard, &SumReturnsOther, &SumReturnsMixed)
+						addPaymentSplit(transaction, &kassaSumReturnsCash, &kassaSumReturnsCard, &kassaSumReturnsOther, &kassaSumReturnsMixed)
 					}
 				}
 			}

@@ -160,9 +160,19 @@ func GetOperationsFromApi(ctx context.Context, storage storageOperations, cfg *c
 					return err
 				}
 
+				sumCash, sumCard, splitErr := utils.GetPaymentSplitFromCheque(chequeString,
+					listEntity[index].Paymenttypes, listEntity[index].Sum_operation)
+				if splitErr != nil {
+					// не критично: оставляем sum_cash/sum_card пустыми, вставку не прерываем
+					log.Error("error on get payment split from cheque: ", slog.String("err", splitErr.Error()),
+						slog.String("id", listEntity[index].Ofd_id))
+				}
+
 				// безопасно: каждый goroutine пишет только по своему индексу
 				listEntity[index].Cheque = null.StringFrom(chequeString)
 				listEntity[index].ChequeJSON = names
+				listEntity[index].SumCash = sumCash
+				listEntity[index].SumCard = sumCard
 				return nil
 			})
 		}

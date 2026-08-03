@@ -265,3 +265,48 @@ func getTotalSum(line string) (float64, error) {
 	}
 	return totalSum, nil
 }
+
+// GetPaymentSplitFromCheque возвращает разбивку суммы чека на наличные и карту.
+// Гарантирует sum_cash + sum_card = sum_operation везде, где разбивка известна:
+// при одном виде оплаты вторая сумма записывается явным нулём (не NULL), а не
+// пропускается, чтобы sum_cash/sum_card были пригодны для прямого сложения в SQL.
+// Если оплата смешанная - суммы наличными и картой берутся из текста чека,
+// так как список операций КОФД отдает только общую сумму и виды оплаты.
+func GetPaymentSplitFromCheque(data string, paymentTypes *[]int, sumOperation null.Float) (null.Float, null.Float, error) {
+	if paymentTypes == nil || len(*paymentTypes) == 0 {
+		return null.Float{}, null.Float{}, nil
+	}
+	if len(*paymentTypes) == 1 {
+		switch (*paymentTypes)[0] {
+		case 0:
+			return sumOperation, null.FloatFrom(0), nil
+		case 1:
+			return null.FloatFrom(0), sumOperation, nil
+		default:
+			return null.Float{}, null.Float{}, nil
+		}
+	}
+
+	// смешанная оплата - разбираем текст чека, доверяем только полной и сходящейся разбивке
+	dataArr := strings.Split(data, "\n")
+	cash, cashFound := findAmountByLabel(dataArr, "Наличные:")
+	card, cardFound := findAmountByLabel(dataArr, "Банковская карта:")
+	if !cashFound || !cardFound {
+		return null.Float{}, null.Float{}, fmt.Errorf("не удалось найти разбивку по видам оплаты в чеке")
+	}
+	if math.Abs(cash+card-sumOperation.Float64) > 0.01 {
+		return null.Float{}, null.Float{}, fmt.Errorf("сумма нал+карта (%.2f) не совпадает с суммой чека (%.2f)", cash+card, sumOperation.Float64)
+	}
+	return null.FloatFrom(cash), null.FloatFrom(card), nil
+}
+
+func findAmountByLabel(dataArr []string, label string) (float64, bool) {
+	for _, line := range dataArr {
+		if strings.Contains(line, label) {
+			if amount, err := getTotalSum(line); err == nil {
+				return amount, true
+			}
+		}
+	}
+	return 0, false
+}

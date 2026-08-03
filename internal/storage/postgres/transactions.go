@@ -33,9 +33,10 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 			INSERT INTO transactions (kassa_id, operationdate, sum_operation, type_operation,
 				shift, subtype, systemdate, availablesum, offlinefiscalnumber,
 				onlinefiscalnumber, paymenttypes, organization_id, ofd_id,
-				ofd_name, knumber, cheque, images, cheque_json, kassa_name)
+				ofd_name, knumber, cheque, images, cheque_json, kassa_name,
+				sum_cash, sum_card)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-				$11, $12, $13, $14, $15, $16, $17, $18, $19)
+				$11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
 			ON CONFLICT (ofd_id) DO NOTHING
 		`, transaction.Kassa_id, transaction.Operationdate,
 			transaction.Sum_operation, transaction.Type_operation,
@@ -47,6 +48,7 @@ func (s *Storage) InsertTransactions(ctx context.Context,
 			transaction.Cheque, transaction.Images,
 			transaction.ChequeJSON,
 			transaction.Kassa_name,
+			transaction.SumCash, transaction.SumCard,
 		)
 
 		if err != nil {
