@@ -24,6 +24,7 @@
 - github.com/golang-migrate/migrate
 
 # TODO
+- [v] 2026-08-03 - KOFD_updater/BOT - разбивка суммы смешанной оплаты на нал/карту: sum_cash/sum_card в transactions (парсинг текста чека), учтено в аналитике summary/finance. В списках чеков и NATS-уведомлениях о новых операциях по-прежнему выводится пометка "Смешанно" (GetTypePaymentText не менялся) - см. docs/payment-split.md
 - [v] 2026-07-30 - other - кнопка отправки тестового сообщения выбранному пользователю с отчётом о статусе
 - [v] 2026-07-26 - обновить пакет бота до релиза https://github.com/go-telegram/bot/releases/tag/v1.22.0 (Bot API 10.1, Rich Messages) - ломающих изменений нет, новый API не используется
 - [v] 2026-07-26 - обновить Go до 1.26 (go.mod, Dockerfile), базовый образ alpine до 3.24.1, в CI добавить actions/setup-go@v6 перед линтом, в Dockerfile копировать go.sum в слой зависимостей

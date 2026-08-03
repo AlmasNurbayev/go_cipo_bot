@@ -52,7 +52,13 @@
 
 ## Вне рамок
 
-Точечный вывод `sum_cash`/`sum_card` по каждому чеку в списке чеков (`getAllChecksService`) не делался — там продолжает использоваться `GetTypePaymentText`. Меняется только агрегация по периоду.
+Точечный вывод `sum_cash`/`sum_card` по каждому чеку не делался — везде, где выводится тип оплаты по одной транзакции (`GetTypePaymentText`, `internal/lib/utils/bot_utils.go:293`), продолжает использоваться только `paymenttypes`, без изменений:
+
+- список чеков «Все чеки» (`getAllChecksService`, `internal/botP/summary/services.go:108`);
+- текст одного чека (`internal/botP/summary/services.go:316`);
+- уведомления о новых операциях через NATS (`internal/lib/utils/bot_utils.go:183`).
+
+Для смешанной оплаты там по-прежнему будет пометка «Смешанно», хотя в БД (`sum_cash`/`sum_card`) и в аналитике по периоду (summary/finance, `ConvertTransToTotal`) сумма уже корректно разложена на нал/карту.
 
 ## Проверка
 
