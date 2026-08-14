@@ -15,9 +15,9 @@ make lint           # golangci-lint run ./cmd/... ./internal/...
 go build ./...      # сборка всех бинарников
 ```
 
-`make test` объявлен в makefile, но каталога `tests/` в репозитории нет — тестов сейчас не существует.
+`make test` = `go test -v -count=1 ./cmd/... ./internal/...`. Тесты лежат рядом с кодом (`*_test.go`); пока покрыт только парсер чека — `internal/lib/utils/kofd_updater_utils_test.go`.
 
-Prod-запуск: `docker compose up -d` (образ `almasnurbayev/go_cipo_bot:latest`). CI (`.github/workflows/docker-publish.yml`) собирает и пушит образ **только по тегу `v*`**, предварительно прогоняя golangci-lint. Контейнер при старте выполняет `MIGRATOR -typeTask up` и затем `BOT`. KOFD_UPDATER в контейнере не запускается сам — его дёргает внешний cron каждые 2 минуты.
+Prod-запуск: `docker compose up -d` (образ `almasnurbayev/go_cipo_bot:latest`). CI (`.github/workflows/docker-publish.yml`) собирает и пушит образ **только по тегу `v*`**, предварительно прогоняя golangci-lint и `go test`. Контейнер при старте выполняет `MIGRATOR -typeTask up` и затем `BOT`. KOFD_UPDATER в контейнере не запускается сам — его дёргает внешний cron каждые 2 минуты.
 
 ## Архитектура
 

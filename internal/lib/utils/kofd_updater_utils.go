@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"math"
-	"slices"
 	"strings"
 	"unicode"
 
@@ -55,6 +54,9 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 		}
 	}
 
+	// applied[i] отмечает позицию names[i], к которой уже применили скидку или наценку
+	applied := make([]bool, 0, len(goodsBlocks))
+
 	for _, block := range goodsBlocks {
 		trimmedName, findedSize := trimNameSize(block)
 		positionSum := strings.Index(block, "₸")
@@ -72,12 +74,7 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 		}
 		if strings.Contains(block, "/СКИДКА") {
 			// если это про скидку, то не добавляем строку в массив, меняем цену
-			index := slices.IndexFunc(names, func(el modelsI.ChequeJSONElement) bool {
-				// сравниваем по имени и размеру, если есть
-				// внутри имени убираем пробелы, так как КОФД в секции скидки сам убирает пробелы
-				return strings.ReplaceAll(el.Name, " ", "") == strings.ReplaceAll(trimmedName, " ", "") &&
-					el.Size.String == findedSize
-			})
+			index := findGoodsIndex(names, applied, trimmedName, findedSize)
 			// fmt.Println("block", block)
 			// fmt.Println("price", price)
 			// fmt.Println("positionSum", positionSum)
@@ -89,15 +86,15 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 				discountPrice := names[index].NominalPrice - math.Round(price*100)/100
 				names[index].DiscountPrice = discountPrice
 				names[index].Sum = math.Round(discountPrice*100*float64(names[index].Qnt)) / 100
+				applied[index] = true
 			}
 		} else if strings.Contains(block, "/НАЦЕНКА") {
-			index := slices.IndexFunc(names, func(el modelsI.ChequeJSONElement) bool {
-				return el.Name == trimmedName
-			})
+			index := findGoodsIndex(names, applied, trimmedName, findedSize)
 			if index != -1 {
 				discountPrice := names[index].NominalPrice + math.Round(price*100)/100
 				names[index].DiscountPrice = discountPrice
 				names[index].Sum = math.Round(discountPrice*100*float64(names[index].Qnt)) / 100
+				applied[index] = true
 			}
 
 		} else {
@@ -109,6 +106,7 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 				Qnt:           qnt,
 				Sum:           math.Round(price*100*float64(qnt)) / 100,
 			})
+			applied = append(applied, false)
 		}
 	}
 	var arraySum float64
@@ -117,8 +115,9 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 	}
 	// считаем сумму всех товаров в чеке и сравниваем с итоговой суммой чека
 	totalSum, err := getTotalSum(dataArr[totalIndex])
-	if err != nil || totalSum != arraySum {
-		fmt.Println("не совпадение суммы или ошибка при парсинге суммы: ", err)
+	if err != nil || math.Abs(totalSum-arraySum) > 0.01 {
+		fmt.Printf("не совпадение суммы или ошибка при парсинге суммы: ИТОГО %.2f, сумма товаров %.2f, ошибка: %v\n",
+			totalSum, arraySum, err)
 		fmt.Println("чек: ", data)
 	}
 
@@ -126,6 +125,24 @@ func GetGoodsFromCheque(data string) (modelsI.ChequeJSONList, error) {
 	//fmt.Println("ИТОГО: ", totalSum)
 
 	return names, nil
+}
+
+// findGoodsIndex ищет первую позицию с таким же именем и размером, к которой
+// ещё не применялась скидка или наценка - в чеке одинаковые товары идут
+// отдельными строками, и каждой строке скидки должна достаться своя позиция.
+// Пробелы внутри имени игнорируем: КОФД в блоке скидок их схлопывает
+func findGoodsIndex(names modelsI.ChequeJSONList, applied []bool, name string, size string) int {
+	normalizedName := strings.ReplaceAll(name, " ", "")
+	for i := range names {
+		if applied[i] {
+			continue
+		}
+		if strings.ReplaceAll(names[i].Name, " ", "") == normalizedName &&
+			names[i].Size.String == size {
+			return i
+		}
+	}
+	return -1
 }
 
 func trimNameSize(findedName string) (string, string) {
