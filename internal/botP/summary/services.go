@@ -3,6 +3,7 @@ package summary
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sort"
 	"strconv"
@@ -19,6 +20,7 @@ type storageI interface {
 	ListTransactionsByDate(context.Context, time.Time, time.Time) ([]modelsI.TransactionEntity, error)
 	GetTransactionById(context.Context, int64) (modelsI.TransactionEntity, error)
 	ListKassa(context.Context) ([]modelsI.KassaEntity, error)
+	GetSettings(context.Context) ([]modelsI.SettingsEntity, error)
 }
 
 func getSummaryDate(ctx context.Context, mode string, storage storageI,
@@ -70,6 +72,50 @@ func getSummaryDate(ctx context.Context, mode string, storage storageI,
 	return result, err
 }
 
+const (
+	// keyChecksMaxDays - за какой период максимум отдаем списки чеков, app_settings
+	keyChecksMaxDays = "SUMMARY_CHECKS_MAX_DAYS"
+	// defaultChecksMaxDays - фолбэк, если настройки в БД нет или БД недоступна
+	defaultChecksMaxDays = 7
+)
+
+// checksMaxDays читает лимит периода из app_settings на каждый запрос, чтобы
+// правка в БД действовала без перезапуска бота. Любая проблема - нет строки,
+// мусор в значении, недоступная БД - откатывает на defaultChecksMaxDays:
+// настройка управляет фичей, а не решает, работать ей или нет.
+func checksMaxDays(ctx context.Context, storage storageI, log *slog.Logger) int {
+	settings, err := storage.GetSettings(ctx)
+	if err != nil {
+		log.Error("не смог прочитать настройки, беру значение по умолчанию",
+			slog.String("err", err.Error()), slog.Int("default", defaultChecksMaxDays))
+		return defaultChecksMaxDays
+	}
+
+	maxDays := config.GetSettingsInt(keyChecksMaxDays, settings, defaultChecksMaxDays)
+	// ноль или отрицательное убрали бы кнопки совсем и молча - это опечатка в БД,
+	// а не намерение отключить списки
+	if maxDays <= 0 {
+		log.Warn("недопустимое значение настройки, беру значение по умолчанию",
+			slog.String("key", keyChecksMaxDays), slog.Int("value", maxDays),
+			slog.Int("default", defaultChecksMaxDays))
+		return defaultChecksMaxDays
+	}
+
+	return maxDays
+}
+
+// errPeriodTooLong - период запроса длиннее разрешенного настройкой. На длинных
+// периодах кнопки списков не показываются, но callback может прилететь из
+// старого сообщения. Текст уходит пользователю как есть, поэтому число дней
+// подставляется актуальное.
+type errPeriodTooLong struct {
+	maxDays int
+}
+
+func (e errPeriodTooLong) Error() string {
+	return fmt.Sprintf("список чеков доступен за период не длиннее %d дн.", e.maxDays)
+}
+
 // checksChunk - одна часть списка чеков: текст в пределах лимита Telegram
 // и кнопки ровно на те чеки, которые в этот текст попали.
 type checksChunk struct {
@@ -99,6 +145,13 @@ func getAllChecksService(ctx context.Context, mode string, storage storageI,
 		return nil, err
 	}
 	log.Info("date", slog.Time("start", start), slog.Time("end", end))
+
+	maxDays := checksMaxDays(ctx, storage, log)
+	if !utils.IsPeriodWithinDays(start, end, maxDays) {
+		log.Warn("период длиннее допустимого", slog.Time("start", start),
+			slog.Time("end", end), slog.Int("maxDays", maxDays))
+		return nil, errPeriodTooLong{maxDays: maxDays}
+	}
 
 	data, err := storage.ListTransactionsByDate(ctx, start, end)
 	if err != nil {
@@ -157,6 +210,86 @@ func getAllChecksService(ctx context.Context, mode string, storage storageI,
 	flush()
 
 	return chunks, nil
+}
+
+// checkRow - строка табличного списка чеков, все значения уже отформатированы.
+// ID нужен для кнопки, открывающей чек целиком.
+type checkRow struct {
+	ID       int64
+	Num      string
+	DateTime string
+	Type     string
+	Sum      string
+	Card     string
+	Cash     string
+}
+
+// getAllChecksTableService готовит чеки за период для вывода таблицей.
+// Разбивка по видам оплаты берется из самой транзакции (sum_card/sum_cash),
+// в состав чека (cheque_json) не заходим.
+func getAllChecksTableService(ctx context.Context, mode string, storage storageI,
+	log1 *slog.Logger) ([]checkRow, error) {
+
+	op := "summary.getAllChecksTable"
+	log := log1.With(slog.String("op", op))
+
+	mode = strings.ReplaceAll(mode, "summary_allChecksTable_", "")
+
+	start, end, err := utils.GetPeriodByString(mode)
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return nil, err
+	}
+	log.Info("date", slog.Time("start", start), slog.Time("end", end))
+
+	maxDays := checksMaxDays(ctx, storage, log)
+	if !utils.IsPeriodWithinDays(start, end, maxDays) {
+		log.Warn("период длиннее допустимого", slog.Time("start", start),
+			slog.Time("end", end), slog.Int("maxDays", maxDays))
+		return nil, errPeriodTooLong{maxDays: maxDays}
+	}
+
+	data, err := storage.ListTransactionsByDate(ctx, start, end)
+	if err != nil {
+		log.Error("error: ", slog.String("err", err.Error()))
+		return nil, err
+	}
+	log.Info("transactions count", slog.Int("count", len(data)))
+
+	rows := make([]checkRow, 0, len(data))
+	for index, tx := range data {
+		card, cash := paymentCells(tx)
+		rows = append(rows, checkRow{
+			ID:       tx.Id,
+			Num:      strconv.Itoa(index + 1),
+			DateTime: tx.Operationdate.Time.Format("02.01.06 15:04"),
+			Type:     utils.GetTypeOperationText(tx),
+			Sum:      utils.FormatNumber(tx.Sum_operation.Float64),
+			Card:     card,
+			Cash:     cash,
+		})
+	}
+
+	return rows, nil
+}
+
+// paymentCells возвращает содержимое колонок "в т.ч. карта" и "в т.ч. нал"
+// прямо из транзакции. Списки чеков отдаются за короткий период, поэтому
+// разбирать paymenttypes ради операций, вставленных до появления
+// sum_cash/sum_card, не нужно - при запросе старой даты NULL считаем нулем.
+// У выемок, внесений и отчетов разбивки нет по смыслу.
+func paymentCells(tx modelsI.TransactionEntity) (card, cash string) {
+	if tx.Type_operation != 1 {
+		return "—", "—"
+	}
+	return formatOrDash(tx.SumCard.Float64), formatOrDash(tx.SumCash.Float64)
+}
+
+func formatOrDash(sum float64) string {
+	if sum == 0 {
+		return "—"
+	}
+	return utils.FormatNumber(sum)
 }
 
 // buildChequeBlock собирает текст одного чека для списка.

@@ -9,6 +9,13 @@ import (
 )
 
 // получаем границы периода из текста формата "2025-01-01_2025-01-31"
+// IsPeriodWithinDays - период укладывается в days суток. Границы суток тут
+// задаются как 00:00:00 - 23:59:59.999999999, поэтому один день это чуть
+// меньше 24 часов, а два дня - уже больше.
+func IsPeriodWithinDays(start time.Time, end time.Time, days int) bool {
+	return end.Sub(start) <= time.Duration(days)*24*time.Hour
+}
+
 func GetPeriodByString(interval string) (time.Time, time.Time, error) {
 	parts := strings.Split(interval, "_")
 	if len(parts) != 2 {

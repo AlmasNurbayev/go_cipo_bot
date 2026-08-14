@@ -41,6 +41,25 @@ func GetSettingsFloat64(key string, settings []models.SettingsEntity) (float64, 
 	return 0, errors.New("no float64 value found for key: " + key)
 }
 
+// GetSettingsInt - целое число из настройки. В JSON числа приходят как float64.
+// В отличие от GetSettingsFloat64 ошибку не возвращает: если ключа нет, значение
+// пустое или не число - отдаем def. Отсутствие строки в app_settings не должно
+// ронять фичу, которая этой настройкой управляется.
+func GetSettingsInt(key string, settings []models.SettingsEntity, def int) int {
+	for _, s := range settings {
+		if s.Key != key {
+			continue
+		}
+		for _, v := range s.Value {
+			switch val := v.(type) {
+			case float64:
+				return int(val)
+			}
+		}
+	}
+	return def
+}
+
 func GetSettingsUSDRates(key string, settings []models.SettingsEntity) ([]models.USDRates, error) {
 	var result []models.USDRates
 	for _, s := range settings {
