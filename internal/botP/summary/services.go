@@ -70,14 +70,25 @@ func getSummaryDate(ctx context.Context, mode string, storage storageI,
 	return result, err
 }
 
+// checksChunk - одна часть списка чеков: текст в пределах лимита Telegram
+// и кнопки ровно на те чеки, которые в этот текст попали.
+type checksChunk struct {
+	Text   string
+	Markup models.InlineKeyboardMarkup
+}
+
+const (
+	// кнопок в ряду
+	maxButtonsPerRow = 8
+	// рядов кнопок на одно сообщение - слишком большой reply_markup Telegram отклоняет
+	maxButtonRows = 12
+)
+
 func getAllChecksService(ctx context.Context, mode string, storage storageI,
-	log1 *slog.Logger, cfg *config.Config) (string, models.InlineKeyboardMarkup, error) {
+	log1 *slog.Logger, cfg *config.Config) ([]checksChunk, error) {
 
 	op := "summary.getAllChecks"
 	log := log1.With(slog.String("op", op))
-
-	var markups models.InlineKeyboardMarkup
-	var inlineKeyboard [][]models.InlineKeyboardButton
 
 	mode = strings.ReplaceAll(mode, "summary_allChecks_", "")
 
@@ -85,71 +96,91 @@ func getAllChecksService(ctx context.Context, mode string, storage storageI,
 	start, end, err := utils.GetPeriodByString(mode)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
-		return "", markups, err
+		return nil, err
 	}
 	log.Info("date", slog.Time("start", start), slog.Time("end", end))
 
 	data, err := storage.ListTransactionsByDate(ctx, start, end)
 	if err != nil {
 		log.Error("error: ", slog.String("err", err.Error()))
-		return "", markups, err
+		return nil, err
+	}
+	log.Info("transactions count", slog.Int("count", len(data)))
+
+	var chunks []checksChunk
+	var sb strings.Builder
+	var inlineKeyboard [][]models.InlineKeyboardButton
+	var keyboardButtons []models.InlineKeyboardButton
+	sbLen := 0
+
+	// закрывает текущую часть и начинает новую
+	flush := func() {
+		if sb.Len() == 0 {
+			return
+		}
+		if len(keyboardButtons) > 0 {
+			inlineKeyboard = append(inlineKeyboard, keyboardButtons)
+			keyboardButtons = nil
+		}
+		chunks = append(chunks, checksChunk{
+			Text:   sb.String(),
+			Markup: models.InlineKeyboardMarkup{InlineKeyboard: inlineKeyboard},
+		})
+		sb.Reset()
+		sbLen = 0
+		inlineKeyboard = nil
 	}
 
-	var sb strings.Builder
-
-	var keyboardButtons []models.InlineKeyboardButton
-
 	for index, cheque := range data {
+		block := buildChequeBlock(index+1, cheque)
+		// один чек с длинным составом сам по себе может не влезть в сообщение
+		block = utils.TrimToTelegramLimit(block, utils.TelegramMaxMessageLen)
+		blockLen := utils.TelegramLen(block)
 
-		typeOperation := utils.GetTypeOperationText(cheque)
-		if typeOperation == "Возврат" {
-			typeOperation = "⚠️Возврат"
-		}
-		typePayment := utils.GetTypePaymentText(cheque)
-		if typePayment == "Неизвестно" {
-			typePayment = ""
+		buttonsFull := len(inlineKeyboard)*maxButtonsPerRow+len(keyboardButtons) >= maxButtonsPerRow*maxButtonRows
+		if sb.Len() > 0 && (sbLen+blockLen > utils.TelegramMaxMessageLen || buttonsFull) {
+			flush()
 		}
 
-		sb.WriteString("<b>" + strconv.Itoa(index+1) + ". ")
-		sb.WriteString(cheque.Kassa_name.String + " - " + strings.TrimSpace(cheque.Operationdate.Time.Format("15:04")) +
-			" - " + typeOperation + " " + typePayment + " " + utils.FormatNumber(cheque.Sum_operation.Float64) + " ₸")
-		sb.WriteString("\n")
-		sb.WriteString("</b>")
-		if cheque.ChequeJSON != nil {
-			for _, item := range cheque.ChequeJSON {
-				sb.WriteString(" • " + item.Name + " (" + item.Size.String + ") ₸ " + utils.FormatNumber(item.Sum) + "\n")
-			}
-		}
-		sb.WriteString("\n")
+		sb.WriteString(block)
+		sbLen += blockLen
+
 		keyboardButtons = append(keyboardButtons, models.InlineKeyboardButton{
 			Text:         strconv.Itoa(index + 1),
 			CallbackData: "getCheck_" + strconv.Itoa(int(cheque.Id)),
-		},
-		)
-		if len(keyboardButtons) == 8 {
+		})
+		if len(keyboardButtons) == maxButtonsPerRow {
 			inlineKeyboard = append(inlineKeyboard, keyboardButtons)
-			keyboardButtons = []models.InlineKeyboardButton{}
+			keyboardButtons = nil
 		}
 	}
+	flush()
 
-	if len([]rune(sb.String())) > 4096 {
-		// нужно возвращать пустой markup, иначе не уйдет
-		return "сообщение слишком большое, сократите период",
-			models.InlineKeyboardMarkup{
-				InlineKeyboard: [][]models.InlineKeyboardButton{},
-			}, err
+	return chunks, nil
+}
+
+// buildChequeBlock собирает текст одного чека для списка.
+// Каждая строка блока самодостаточна по разметке (теги открываются и закрываются
+// внутри строки), поэтому блок можно безопасно обрезать по строкам.
+func buildChequeBlock(num int, cheque modelsI.TransactionEntity) string {
+	typeOperation := utils.GetTypeOperationText(cheque)
+	if typeOperation == "Возврат" {
+		typeOperation = "⚠️Возврат"
+	}
+	typePayment := utils.GetTypePaymentText(cheque)
+	if typePayment == "Неизвестно" {
+		typePayment = ""
 	}
 
-	log.Info("transactions count", slog.Int("count", len(data)))
-
-	if len(keyboardButtons) > 0 {
-		inlineKeyboard = append(inlineKeyboard, keyboardButtons)
+	var sb strings.Builder
+	sb.WriteString("<b>" + strconv.Itoa(num) + ". " +
+		cheque.Kassa_name.String + " - " + strings.TrimSpace(cheque.Operationdate.Time.Format("15:04")) +
+		" - " + typeOperation + " " + typePayment + " " + utils.FormatNumber(cheque.Sum_operation.Float64) + " ₸</b>\n")
+	for _, item := range cheque.ChequeJSON {
+		sb.WriteString(" • " + item.Name + " (" + item.Size.String + ") ₸ " + utils.FormatNumber(item.Sum) + "\n")
 	}
-	markups = models.InlineKeyboardMarkup{
-		InlineKeyboard: inlineKeyboard,
-	}
-
-	return sb.String(), markups, nil
+	sb.WriteString("\n")
+	return sb.String()
 }
 
 func getAnalyticsService(ctx context.Context, mode string, storage storageI,
@@ -345,13 +376,14 @@ func getOneCheckService(ctx context.Context, queryString string, storage storage
 		}
 	}
 
+	// с фото текст уходит подписью к медиагруппе - там лимит вчетверо меньше
+	text := sb.String()
 	if len(modelsToSend) > 0 {
-		modelsToSend[0].Caption = sb.String()
+		text = utils.TrimToTelegramLimit(text, utils.TelegramMaxCaptionLen)
+		modelsToSend[0].Caption = text
 		modelsToSend[0].ParseMode = models.ParseModeHTML
-	}
-
-	if len([]rune(sb.String())) > 1096 {
-		return nil, "", errors.New("сообщение слишком большое, сократите период")
+	} else {
+		text = utils.TrimToTelegramLimit(text, utils.TelegramMaxMessageLen)
 	}
 
 	var inputMedia []models.InputMedia
@@ -361,10 +393,9 @@ func getOneCheckService(ctx context.Context, queryString string, storage storage
 
 	// Если есть фото, то отправляем их, иначе просто текст
 	if len(inputMedia) == 0 {
-		//fmt.Println(sb.String())
-		return nil, sb.String(), nil
+		return nil, text, nil
 	} else {
-		return inputMedia, sb.String(), nil
+		return inputMedia, text, nil
 	}
 }
 
@@ -393,7 +424,8 @@ func getFullTextCheckService(ctx context.Context, queryString string, storage st
 		log.Error("error: ", slog.String("err", err.Error()))
 		return "", err
 	}
-	result := data.Cheque.String
+	// сырой текст чека из КОФД тоже может не влезть в сообщение
+	result := utils.TrimToTelegramLimit(data.Cheque.String, utils.TelegramMaxMessageLen)
 
 	return result, nil
 }

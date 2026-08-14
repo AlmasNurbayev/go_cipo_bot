@@ -157,7 +157,7 @@ func summaryCallbackHandler(storage storageI,
 		}
 
 		if strings.Contains(cb.Data, "summary_allChecks_") {
-			response, markups, err := getAllChecksService(ctx, cb.Data, storage, log, cfg)
+			chunks, err := getAllChecksService(ctx, cb.Data, storage, log, cfg)
 			if err != nil {
 				log.Error("error: ", slog.String("err", err.Error()))
 				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -167,15 +167,34 @@ func summaryCallbackHandler(storage storageI,
 				if err != nil {
 					log.Error("error sending message", slog.String("err", err.Error()))
 				}
+				return
 			}
-			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:      chatID,
-				Text:        response,
-				ParseMode:   models.ParseModeHTML,
-				ReplyMarkup: markups,
-			})
-			if err != nil {
-				log.Error("error sending message", slog.String("err", err.Error()))
+			if len(chunks) == 0 {
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: chatID,
+					Text:   "за этот период чеков нет",
+				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()))
+				}
+				return
+			}
+			log.Info("sending checks", slog.Int("parts", len(chunks)))
+			for i, chunk := range chunks {
+				if i > 0 {
+					// лимит Telegram - примерно 1 сообщение в секунду в чат
+					time.Sleep(400 * time.Millisecond)
+				}
+				_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID:      chatID,
+					Text:        chunk.Text,
+					ParseMode:   models.ParseModeHTML,
+					ReplyMarkup: chunk.Markup,
+				})
+				if err != nil {
+					log.Error("error sending message", slog.String("err", err.Error()),
+						slog.Int("part", i+1))
+				}
 			}
 		}
 
@@ -194,6 +213,7 @@ func summaryCallbackHandler(storage storageI,
 				if err != nil {
 					log.Error("error sending message", slog.String("err", err.Error()))
 				}
+				return
 			}
 			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:      chatID,
