@@ -52,17 +52,19 @@ func transformQntData(data []models.ProductOnlyQnt) GroupDataI {
 	Goods := Goods{}
 	for _, item := range data {
 
+		sumZakup := item.Sum_zakup * float32(item.Qnt)
+
 		// группируем по ном видам
 		nomVidName := item.Nom_vid.String
 		if nomVidName == "" {
 			nomVidName = "неизвестно"
 		}
 		if !slices.ContainsFunc(Goods.NomVids, func(nv NomVidsEntity) bool { return nv.Name == nomVidName }) {
-			Goods.NomVids = append(Goods.NomVids, NomVidsEntity{Name: nomVidName, Sum: item.Sum, Qnt: item.Qnt})
+			Goods.NomVids = append(Goods.NomVids, NomVidsEntity{Name: nomVidName, Sum: sumZakup, Qnt: item.Qnt})
 		} else {
 			for i := range Goods.NomVids {
 				if Goods.NomVids[i].Name == nomVidName {
-					Goods.NomVids[i].Sum += item.Sum_zakup * float32(item.Qnt)
+					Goods.NomVids[i].Sum += sumZakup
 					Goods.NomVids[i].Qnt += item.Qnt
 				}
 			}
@@ -76,11 +78,11 @@ func transformQntData(data []models.ProductOnlyQnt) GroupDataI {
 				prodGroupName = "неизвестно"
 			}
 			if !slices.ContainsFunc(Goods.NomVids[nomVidIndex].ProductGroups, func(pg ProductGroupsEntity) bool { return pg.Name == prodGroupName }) {
-				Goods.NomVids[nomVidIndex].ProductGroups = append(Goods.NomVids[nomVidIndex].ProductGroups, ProductGroupsEntity{Name: prodGroupName, Sum: item.Sum, Qnt: item.Qnt})
+				Goods.NomVids[nomVidIndex].ProductGroups = append(Goods.NomVids[nomVidIndex].ProductGroups, ProductGroupsEntity{Name: prodGroupName, Sum: sumZakup, Qnt: item.Qnt})
 			} else {
 				for j := range Goods.NomVids[nomVidIndex].ProductGroups {
 					if Goods.NomVids[nomVidIndex].ProductGroups[j].Name == prodGroupName {
-						Goods.NomVids[nomVidIndex].ProductGroups[j].Sum += item.Sum_zakup * float32(item.Qnt)
+						Goods.NomVids[nomVidIndex].ProductGroups[j].Sum += sumZakup
 						Goods.NomVids[nomVidIndex].ProductGroups[j].Qnt += item.Qnt
 					}
 				}
@@ -90,6 +92,9 @@ func transformQntData(data []models.ProductOnlyQnt) GroupDataI {
 		// группируем по size группам
 		if nomVidIndex != -1 {
 			prodGroupName := item.Product_group_name
+			if prodGroupName == "" {
+				prodGroupName = "неизвестно"
+			}
 			prodGroupIndex := slices.IndexFunc(Goods.NomVids[nomVidIndex].ProductGroups, func(pg ProductGroupsEntity) bool { return pg.Name == prodGroupName })
 			if prodGroupIndex != -1 {
 				sizeGroupName := item.Size_name
@@ -101,13 +106,13 @@ func transformQntData(data []models.ProductOnlyQnt) GroupDataI {
 						Name: sizeGroupName,
 						//Begin: item.Size_begin.String,
 						//End:   item.Size_end.String,
-						Sum: item.Sum,
+						Sum: sumZakup,
 						Qnt: item.Qnt,
 					})
 				} else {
 					for k := range Goods.NomVids[nomVidIndex].ProductGroups[prodGroupIndex].SizeGroups {
 						if Goods.NomVids[nomVidIndex].ProductGroups[prodGroupIndex].SizeGroups[k].Name == sizeGroupName {
-							Goods.NomVids[nomVidIndex].ProductGroups[prodGroupIndex].SizeGroups[k].Sum += item.Sum_zakup * float32(item.Qnt)
+							Goods.NomVids[nomVidIndex].ProductGroups[prodGroupIndex].SizeGroups[k].Sum += sumZakup
 							Goods.NomVids[nomVidIndex].ProductGroups[prodGroupIndex].SizeGroups[k].Qnt += item.Qnt
 						}
 					}
@@ -121,11 +126,11 @@ func transformQntData(data []models.ProductOnlyQnt) GroupDataI {
 			storeName = "неизвестно"
 		}
 		if !slices.ContainsFunc(stores, func(s StoreEntity) bool { return s.Name == storeName }) {
-			stores = append(stores, StoreEntity{Name: storeName, Sum: item.Sum, Qnt: item.Qnt})
+			stores = append(stores, StoreEntity{Name: storeName, Sum: sumZakup, Qnt: item.Qnt})
 		} else {
 			for i := range stores {
 				if stores[i].Name == storeName {
-					stores[i].Sum += item.Sum_zakup * float32(item.Qnt)
+					stores[i].Sum += sumZakup
 					stores[i].Qnt += item.Qnt
 				}
 			}
