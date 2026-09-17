@@ -10,7 +10,7 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/lib/utils"
 )
 
-func qntNowService(ctx context.Context, log1 *slog.Logger, cfg *config.Config) (string, error) {
+func qntNowService(ctx context.Context, log1 *slog.Logger, cfg *config.Config, mode GroupMode) (string, error) {
 
 	op := "summary.getAnalytics"
 	log := log1.With(slog.String("op", op))
@@ -21,9 +21,14 @@ func qntNowService(ctx context.Context, log1 *slog.Logger, cfg *config.Config) (
 		return "", err
 	}
 
-	groupData := transformQntData(qntData.Products)
+	groupData := transformQntData(qntData.Products, mode)
 
-	text := "Остатки на сегодня:\n"
+	groupTitle := "по сезону"
+	if mode == GroupByVidModeli {
+		groupTitle = "по виду модели"
+	}
+
+	text := "Остатки на сегодня " + groupTitle + ":\n"
 	text += "\n"
 	text += "<b>Магазины:</b> \n"
 	for _, v := range groupData.Stores {

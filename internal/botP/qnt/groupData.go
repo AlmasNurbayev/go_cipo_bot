@@ -6,6 +6,16 @@ import (
 	"github.com/AlmasNurbayev/go_cipo_bot/internal/models"
 )
 
+// GroupMode - режим группировки товаров на втором уровне (внутри вида номенклатуры)
+type GroupMode int
+
+const (
+	// GroupBySeason - группировка по группе товаров (сезон)
+	GroupBySeason GroupMode = iota
+	// GroupByVidModeli - группировка по виду модели
+	GroupByVidModeli
+)
+
 type GroupDataI struct {
 	Goods  Goods
 	Stores []StoreEntity
@@ -45,7 +55,15 @@ type StoreEntity struct {
 	Qnt  int64
 }
 
-func transformQntData(data []models.ProductOnlyQnt) GroupDataI {
+// groupName возвращает имя группы второго уровня в зависимости от режима
+func groupName(item models.ProductOnlyQnt, mode GroupMode) string {
+	if mode == GroupByVidModeli {
+		return item.Vid_modeli_name
+	}
+	return item.Product_group_name
+}
+
+func transformQntData(data []models.ProductOnlyQnt, mode GroupMode) GroupDataI {
 	var result GroupDataI
 
 	stores := []StoreEntity{}
@@ -73,7 +91,7 @@ func transformQntData(data []models.ProductOnlyQnt) GroupDataI {
 		// группируем по продукт группам
 		nomVidIndex := slices.IndexFunc(Goods.NomVids, func(nv NomVidsEntity) bool { return nv.Name == nomVidName })
 		if nomVidIndex != -1 {
-			prodGroupName := item.Product_group_name
+			prodGroupName := groupName(item, mode)
 			if prodGroupName == "" {
 				prodGroupName = "неизвестно"
 			}
@@ -91,7 +109,7 @@ func transformQntData(data []models.ProductOnlyQnt) GroupDataI {
 
 		// группируем по size группам
 		if nomVidIndex != -1 {
-			prodGroupName := item.Product_group_name
+			prodGroupName := groupName(item, mode)
 			if prodGroupName == "" {
 				prodGroupName = "неизвестно"
 			}

@@ -10,7 +10,7 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func qntNowHandler(storage *storage.Storage, log1 *slog.Logger, cfg *config.Config) bot.HandlerFunc {
+func qntNowHandler(storage *storage.Storage, log1 *slog.Logger, cfg *config.Config, mode GroupMode) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		op := "qnt.qntNowHandler"
 		log := log1.With(slog.String("op", op), slog.Attr(slog.Int64("id", update.Message.From.ID)), slog.String("user name", update.Message.From.Username))
@@ -21,7 +21,7 @@ func qntNowHandler(storage *storage.Storage, log1 *slog.Logger, cfg *config.Conf
 		//return
 		log.Info("qnt now called button", slog.String("text", msg.Text))
 
-		text, err := qntNowService(ctx, log, cfg)
+		text, err := qntNowService(ctx, log, cfg, mode)
 		if err != nil {
 			log.Error("error qntNowService", slog.String("err", err.Error()))
 			text = "Ошибка получения остатков"
